@@ -25,3 +25,21 @@ const person = {
 
 person.greet();
 person.greet2();
+
+
+/**  SPREAD Y REST OPERATORS  */
+//puedo clonar objetos o arreglos sin tocar los originales
+const copiedPerson = {...person};
+console.log(copiedPerson);
+const originalArray = [1,2,3,4];
+const copiedArray = [...originalArray];
+copiedArray.push(5);
+console.log(originalArray);
+console.log(copiedArray);
+
+//rest operator es para hacer lo contrario que el spread
+const toArray = (...args) => {
+    return args;//notar que args defrente es transformado a un Array!!
+}
+
+console.log(toArray(1,2,3,4,5,6));
