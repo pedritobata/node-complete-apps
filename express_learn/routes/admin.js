@@ -18,7 +18,7 @@ router.get('/add-product', (req,res,next)=>{
     </head>
     <body>
         <h1>Add Product</h1>
-        <form action="/product" method="post">
+        <form action="/admin/add-product" method="post">
             <input type="text" name="title"><br>
             <button type="submit">Save</button>
         </form>
@@ -26,8 +26,9 @@ router.get('/add-product', (req,res,next)=>{
     </html>
     `);
 });
-
-router.post('/product', (req,res,next)=>{
+//notar que uso el mismo path que la ruta anterior
+// eso no es problema porque las peticiones son diferentes: get y post
+router.post('/add-product', (req,res,next)=>{
     console.log(req.body);
     res.redirect('/');
 });
