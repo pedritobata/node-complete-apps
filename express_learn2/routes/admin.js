@@ -3,6 +3,11 @@ const path = require('path')
 
 const router = express.Router();
 
+//esta variable la compartiremos con todos los MW (osea con todas las peticiones)
+//pero el problema es que estará disponible tambien para TODOS los users lo cual no es bueno
+//La variable está a nivel de SERVIDOR
+const products = [];
+
 const rootDir = require('../util/path');
 
 //uso el utilitario rootDir que creé
@@ -15,7 +20,10 @@ router.get('/add-product', (req,res,next)=>{
 // eso no es problema porque las peticiones son diferentes: get y post
 router.post('/add-product', (req,res,next)=>{
     console.log(req.body);
+    //guardo los productos agregados creando un objeto nuevo y asignandole el titulo que se obtuvo del req
+    products.push({title:req.body.title});
     res.redirect('/');
 });
 
-module.exports = router;
+module.exports.router = router;
+module.exports.products = products;

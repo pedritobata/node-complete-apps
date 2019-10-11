@@ -4,7 +4,7 @@ const path = require('path');
 
 const app = express();
 
-var adminRoutes = require('./routes/admin');
+var adminData = require('./routes/admin');
 var shopRoutes = require('./routes/shop');
 
 app.use(bodyParser.urlencoded({extended:false}));
@@ -17,7 +17,7 @@ app.use(bodyParser.urlencoded({extended:false}));
 //que tiene los recursos estaticos y a partir de ahi indicamos el resto del path!!
 app.use(express.static(path.join(__dirname,'public')));
 
-app.use('/admin',adminRoutes);
+app.use('/admin',adminData.router);
 app.use(shopRoutes);
 
 // Agregamos un MW con la ruta default para que muestre pagina de 404
