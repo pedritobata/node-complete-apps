@@ -25,17 +25,18 @@ module.exports = class Product{
         });
     }
 
-    static fetchAll(){
+    static fetchAll(callback){
         //return  products;
         const p = path.join(path.dirname(process.mainModule.filename),'data','products.json');
 
-        //recorda QUE ESTE METODO SE EJECUTA ASINCRONAMENTE!!!!
+        //recordar QUE ESTE METODO SE EJECUTA ASINCRONAMENTE!!!!
         //por eso el que reciba el resultado de la lectura del archivo recibirá undefined!!
+        //la solucion es que nos pasen un callback!!
         fs.readFile(p, (err, fileContent)=>{
             if(err){
-                return [];
+                calback([]);
             }
-            return JSON.parse(fileContent);
+            callback(JSON.parse(fileContent));
         });
     }
 }
