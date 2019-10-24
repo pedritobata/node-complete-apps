@@ -7,6 +7,9 @@ const errorController = require('./controllers/error');
 
 const app = express();
 
+//con los metodos diferentes a use(), el next() se dispara automaticamente
+// solo con el metodo use() hay que disparar los metodos next() a mano!!
+
 app.set('view engine', 'ejs');
 app.set('views', 'views');
 
