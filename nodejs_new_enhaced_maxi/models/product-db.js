@@ -14,8 +14,12 @@ module.exports = class Product {
   }
 
   save() {
-    
-   
+    //el segundo parametro indica los valores que iran en los placeholders
+    return db.execute('INSERT INTO product (title,price,imageUrl,description) VALUES (?,?,?,?)',
+    [
+      this.title,this.price,this.imageUrl,this.description
+    ]
+    );
   }
 
   static deleteProductById(id){
@@ -27,7 +31,7 @@ module.exports = class Product {
   }
 
   static findById(id){
-   
+    return db.execute('SELECT * FROM product WHERE id = ?',[id]);
   }
 
 };

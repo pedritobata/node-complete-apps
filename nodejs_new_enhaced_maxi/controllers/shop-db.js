@@ -17,15 +17,19 @@ exports.getProducts = (req, res, next) => {
 };
 
 exports.getProduct = (req,res,next) => {
-  //uso el mismo nombre del parametro que definí en el router!!
   const prodId = req.params.productId;
-  Product.findById(prodId, product => {
+  Product.findById(prodId)
+  .then(([product])=>{
     res.render('shop/product-detail', {
-      pageTitle: product.title,
-      product:product,
+      //recordar que el pool siempre trae los resultados en arreglos
+      //asi sea un solo registro el que se obtiene
+      pageTitle: product[0].title,
+      product:product[0],
       path: '/products'
     });
-  });
+  })
+  .catch(err=>{console.log(err)});
+  
 }
 
 exports.getIndex = (req, res, next) => {
