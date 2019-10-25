@@ -9,6 +9,7 @@ const errorController = require('./controllers/error');
 const app = express();
 
 //uso de mysql:
+/*
 db.execute('select * from product')
 .then(result => {
     //result trae un arreglo con dos arreglos mas adentro
@@ -18,6 +19,7 @@ db.execute('select * from product')
 .catch(err => {
     console.log(err);
 });
+*/
 
 //con los metodos diferentes a use(), el next() se dispara automaticamente
 // solo con el metodo use() hay que disparar los metodos next() a mano!!
