@@ -13,12 +13,19 @@ exports.postAddProduct = (req, res, next) => {
   const imageUrl = req.body.imageUrl;
   const price = req.body.price;
   const description = req.body.description;
-  const product = new Product(null,title, imageUrl, description, price);
-  product.save()
-  .then(()=>{
-    res.redirect('/');
+  Product.create({
+    title: title,
+    imageUrl: imageUrl,
+    price: price,
+    description: description
   })
-  .catch(err=>{console.log(err)});
+  .then(result=>{
+    console.log("Product added successfully!!");
+    res.redirect('/admin/products');
+  })
+  .catch(err=>{
+    console.log(err);
+  });
   
 };
 
@@ -27,17 +34,20 @@ exports.getEditProduct = (req, res, next) => {
   if(!editMode){
     return res.redirect("/");
   }
-  Product.findById(req.params.productId, product => {
-    if(!product){
-      res.redirect("/");
+  Product.findByPk(req.params.productId)
+  .then(product=>{
+      if(!product){
+        res.redirect("/");
+      }
+      res.render('admin/edit-product', {
+        pageTitle: 'Edit Product',
+        path: '',
+        editing: editMode,
+        product: product
+      });
     }
-    res.render('admin/edit-product', {
-      pageTitle: 'Edit Product',
-      path: '',//mando el path vacio para que no se le cambie el estilo active a ningun link del nav
-      editing: editMode,
-      product: product
-    });
-  });
+   )
+  .catch(err=>console.log(err));
   
 };
 
@@ -47,24 +57,53 @@ exports.postEditProduct = (req,res,next) => {
   const imageUrl = req.body.imageUrl;
   const price = req.body.price;
   const description = req.body.description;
-  const product = new Product(prodId,title, imageUrl, description, price);
-  product.save();
-  res.redirect('/admin/products');
+  //usamos findByPk() y luego dentro usamos save()
+  Product.findByPk(prodId)
+  .then(product=>{
+    //estas asignaciones no actualizan la BD , solo el objeto product local!!
+    product.title = title;
+    product.imageUrl = imageUrl;
+    product.price = price;
+    product.description = description;
+    //con el metodo save() de sequelize, él se encarga de actualizar la bd o crear un nuevo
+    //product si este no existiera con el id especificado en findByPk()
+    return product.save();
+  })
+  .then(result=>{
+    console.log('Updated product!!');
+    //hacemos la redicreccion dentro de esta promise
+    //guarda con la asincronia. Sino redireccionamos acá , 
+    //no veriamos la actualizacion en la vista hasta que la recarguemos manualmente!!
+    res.redirect('/admin/products');
+  })
+  .catch(err=>console.log(err));
+  
 };
 
 exports.postDeleteProduct = (req,res, next) => {
     const productId = req.body.productId;
-    console.log('eliminar:',productId);
-    Product.deleteProductById(productId);
-    res.redirect('/admin/products'); 
+    //se puede usar tambien Product.destroy(where)
+    //pero usaremos el findByPk y luego el destroy. parecido a lo que hicimos en postEditProduct
+    Product.findByPk(productId)
+    .then(product=>{
+      return product.destroy();
+    })
+    .then(result=>{
+      console.log("Product deleted!!");
+      res.redirect('/admin/products'); 
+    })
+    .catch(err=>console.log(err));
+    
 };
 
 exports.getProducts = (req, res, next) => {
-  Product.fetchAll(products => {
+  Product.findAll()
+  .then(products => {
     res.render('admin/products', {
       prods: products,
       pageTitle: 'Admin Products',
       path: '/admin/products'
     });
-  });
+  })
+  .catch(err=>console.log(err));
 };
