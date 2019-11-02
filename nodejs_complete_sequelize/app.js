@@ -8,6 +8,8 @@ const Product = require('./models/product');
 const User = require('./models/user');
 const Cart = require('./models/cart');
 const CartItem = require('./models/cart-item');
+const Order = require('./models/order');
+const OrderItem = require('./models/order-item');
 
 const errorController = require('./controllers/error');
 
@@ -60,7 +62,7 @@ app.use(shopRoutes);
 app.use(errorController.get404);
 
 
-//hacemos las relaciones entre tablas antes de sincronizar
+//hacemos las relaciones entre tablas antes de sincronizar 
 Product.belongsTo(User, {constraint:true, onDelete: 'CASCADE'});
 //esto equivaldria a lo de arriba : uno a muchos. no sería necesario ponerlo
 User.hasMany(Product);
@@ -72,12 +74,17 @@ Cart.belongsTo(User);
 Cart.belongsToMany(Product, {through: CartItem});
 Product.belongsToMany(Cart, {through: CartItem});
 
+Order.belongsTo(User);
+User.hasMany(Order);
+
+Order.belongsToMany(Product, {through : OrderItem});
+
 
 // sincronizamos con la BD. Sequelize crea las tablas si no existieran aun
 // ademas te agrega un par de campos a tus tablas : createAt y updatedAt
 //sync devuelve una promesa
-sequelize.sync({force:true})//con force true en dev obligamos a limpiar siempre las tablas
-//sequelize.sync()
+//sequelize.sync({force:true})//con force true en dev obligamos a limpiar siempre las tablas
+sequelize.sync()
 .then(result=>{
     //console.log(result);
     //quiero crear un usuario dummy al vuelo!
@@ -92,6 +99,15 @@ sequelize.sync({force:true})//con force true en dev obligamos a limpiar siempre 
 })
 .then(user=>{
     console.log(user);
+    //uso un metodo magico de sequelize. una vez que he hecho las asociaciones
+    //de las tablas, estos metodos magicos me permiten hacer operaciones multitabla
+    //usando los metodos magicos que reemplazarian a los joins
+    //por ejemplo, creo un cart para user, ya que esas tablas estan relacionadas con belongTo
+    //Cart es sibgular por que la asociacion es belongTo y NO belongToMany!!
+    return user.createCart();
+    
+})
+.then(cart=>{
     app.listen(3000);//ejecuto mi servidor despues de haber creado mis tablas y mi usuario dummy
 })
 .catch(err=>{

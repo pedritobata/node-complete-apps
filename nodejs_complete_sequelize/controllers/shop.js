@@ -63,50 +63,117 @@ exports.getIndex = (req, res, next) => {
 };
 
 exports.getCart = (req, res, next) => {
-  Cart.getCart(cart => {
-    Product.fetchAll(products => {
-      const cartproducts = [];
-      for(let product of products){
-        const cartProductData = cart.products.find(p=>p.id===product.id);
-        if(cartProductData){
-          cartproducts.push({productData: product, qty: cartProductData.qty});
-        }
-      }
-      res.render('shop/cart', {
-        path: '/cart',
-        pageTitle: 'Your Cart',
-        products: cartproducts
-      });
-    });
-  });
-
+  //para acceder al Cart que tiene el user, uso el metodo magico creado por sequelize
+  //gracias a la asociacion de tablas que se hizo en app.js
+  //en este caso es un get para obtener y Cart porque tiene una relacion belongdTo
+  req.user.getCart()
+  .then(cart=>{
+    //otro metodo magico getProducts() gracias a la asociacion de tablas y el belongsToMany
+    //sequelize se engcarga de los joins a las tablas de detalle , qué bacan!!!
+    //acá el return está por costumbre nomas, por si quisiera continuar con las promesas
+    return cart.getProducts()
+           .then(products=>{
+            res.render('shop/cart', {
+              path: '/cart',
+              pageTitle: 'Your Cart',
+              products: products
+            });
+           })
+           .catch(err=>console.log(err));
+  })
+  .catch(err=>console.log(err));
   
 };
 
 exports.postCart = (req,res,next) => {
   const prodId = req.body.productId;
-  Product.findById(prodId, product => {
-    Cart.addProduct(prodId,product.price);
-    //console.log('product.price', product.price);
-  });
-  
-  
-  res.redirect('/cart');
+  let fetchedCart;
+  let newQuantity = 1;
+  req.user.getCart()
+  .then(cart=>{
+    fetchedCart = cart;
+    //getProducts en plural porque la asociacion es belongsToMany!!
+    return cart.getProducts({where: {id: prodId}});
+  })
+  .then(products=>{
+    let product;
+    if(products.length > 0){
+      product = products[0];
+    }
+    
+    if(product){
+      //otra vez sequelize y los metodos y propiedades magicas
+      //puedo hacer como un join entre tablas product y cartItem con la propiedad magica!!
+      newQuantity = product.cartItem.quantity + 1;
+      return product;
+    }
+    return Product.findByPk(prodId);
+  })
+  .then(product=>{
+    return fetchedCart.addProduct(product, {through : {quantity: newQuantity} });
+  })
+  .then(()=>{
+    res.redirect('/cart');
+  })
+  .catch(err=>console.log(err));
 };
 
 exports.postDeleteCartProduct = (req,res, next) => {
    const prodId = req.body.productId;
-   Product.findById(prodId, product => {
-      Cart.deleteProduct(prodId, product.price);
-   });
-   res.redirect('/cart');
+   req.user.getCart()
+   .then(cart=>{
+     return cart.getProducts({where: {id:prodId}});
+   })
+   .then(products=>{
+     const product = products[0];
+     return product.cartItem.destroy();
+   })
+   .then(result=>{
+    res.redirect('/cart'); 
+   })
+   .catch(err=>console.log(err));
+
 };
 
 exports.getOrders = (req, res, next) => {
-  res.render('shop/orders', {
-    path: '/orders',
-    pageTitle: 'Your Orders'
-  });
+  //como user esta relacionado solo coo order
+  //entonces debo especificar que se incluya en el select a los productos que se
+  //relacionan con las order
+  //pongo products en plural porque sequelize pluraliza las tablas
+  req.user.getOrders({include : ['products']})
+  .then(orders => {
+      res.render('shop/orders', {
+        path: '/orders',
+        pageTitle: 'Your Orders',
+        orders: orders
+      }); 
+  })
+  .catch(err=>console.log(err));
+};
+
+exports.postOrder = (req,res, next) => {
+  let fetchedCart;
+  req.user.getCart()
+  .then(cart => {
+    fetchedCart = cart;
+    return cart.getProducts();
+  })
+  .then(products => {
+    return req.user.createOrder()//metodo magico
+      .then(order => {
+        return order.addProducts(products.map(prod => {
+          prod.orderItem = {quantity: prod.cartItem.quantity};
+          return prod;
+        }));
+      })
+      .catch(err => console.log(err));
+  })
+  .then(result => {
+    //con este metodo magico elimino los productos asociados al Cart
+    fetchedCart.setProducts(null);
+    res.redirect('/orders');
+  })
+  .catch(err => console.log(err));
 };
 
 exports.getCheckout = (req, res, next) => {
