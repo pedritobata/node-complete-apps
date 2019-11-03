@@ -13,12 +13,8 @@ exports.postAddProduct = (req, res, next) => {
   const imageUrl = req.body.imageUrl;
   const price = req.body.price;
   const description = req.body.description;
-  Product.create({
-    title: title,
-    imageUrl: imageUrl,
-    price: price,
-    description: description
-  })
+  const product = new Product(title,price,description,imageUrl);
+  product.save()
   .then(result=>{
     console.log("Product added successfully!!");
     res.redirect('/admin/products');
@@ -29,12 +25,13 @@ exports.postAddProduct = (req, res, next) => {
   
 };
 
+
 exports.getEditProduct = (req, res, next) => {
   const editMode = req.query.edit;
   if(!editMode){
     return res.redirect("/");
   }
-  Product.findByPk(req.params.productId)
+  Product.findById(req.params.productId)
   .then(product=>{
       if(!product){
         res.redirect("/");
@@ -57,18 +54,9 @@ exports.postEditProduct = (req,res,next) => {
   const imageUrl = req.body.imageUrl;
   const price = req.body.price;
   const description = req.body.description;
-  //usamos findByPk() y luego dentro usamos save()
-  Product.findByPk(prodId)
-  .then(product=>{
-    //estas asignaciones no actualizan la BD , solo el objeto product local!!
-    product.title = title;
-    product.imageUrl = imageUrl;
-    product.price = price;
-    product.description = description;
-    //con el metodo save() de sequelize, él se encarga de actualizar la bd o crear un nuevo
-    //product si este no existiera con el id especificado en findByPk()
-    return product.save();
-  })
+  const product = new Product(title,price,description,imageUrl,prodId);
+
+   product.save()
   .then(result=>{
     console.log('Updated product!!');
     //hacemos la redicreccion dentro de esta promise
@@ -79,7 +67,7 @@ exports.postEditProduct = (req,res,next) => {
   .catch(err=>console.log(err));
   
 };
-
+/* 
 exports.postDeleteProduct = (req,res, next) => {
     const productId = req.body.productId;
     //se puede usar tambien Product.destroy(where)
@@ -95,9 +83,10 @@ exports.postDeleteProduct = (req,res, next) => {
     .catch(err=>console.log(err));
     
 };
+*/
 
 exports.getProducts = (req, res, next) => {
-  Product.findAll()
+  Product.fetchAll()
   .then(products => {
     res.render('admin/products', {
       prods: products,
@@ -107,3 +96,4 @@ exports.getProducts = (req, res, next) => {
   })
   .catch(err=>console.log(err));
 };
+ 

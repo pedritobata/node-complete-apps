@@ -1,8 +1,8 @@
 const Product = require('../models/product');
-const Cart = require('../models/cart');
+//const Cart = require('../models/cart');
 
 exports.getProducts = (req, res, next) => {
-  Product.findAll()
+  Product.fetchAll()
   .then(products=>{
     res.render('shop/product-list', {
       prods: products,
@@ -18,8 +18,8 @@ exports.getProducts = (req, res, next) => {
 exports.getProduct = (req,res,next) => {
  
   const prodId = req.params.productId;
-  
-  Product.findByPk(prodId)
+  //Ojo que en las vistas que invocan este controller el parametro id se debe llamar _id
+  Product.findById(prodId)
   .then(product=>{
     res.render('shop/product-detail', {
       pageTitle: product.title,
@@ -29,27 +29,11 @@ exports.getProduct = (req,res,next) => {
   })
   .catch(err=>{console.log(err)});
 
-
-  //alternativa: usdando findAll(where)
-  /*
-  Product.findAll({where: {id: prodId}})
-  .then(products=>{
-    res.render('shop/product-detail', {
-      pageTitle: products[0].title,
-      product:products[0],
-      path: '/products'
-    }); 
-  })
-  .catch(err=>console.log(err));
-  */
-
 }
 
 exports.getIndex = (req, res, next) => {
   
-  //el metodo findAll() de sequelize acepta un objeto como argumento
-  //donde le podemos especificar predicados como: where, orderBy, etc!!
-  Product.findAll()
+  Product.fetchAll()
   .then(products=>{
     res.render('shop/index', {
       prods: products,
@@ -61,7 +45,7 @@ exports.getIndex = (req, res, next) => {
     console.log(err);
   });
 };
-
+/* 
 exports.getCart = (req, res, next) => {
   //para acceder al Cart que tiene el user, uso el metodo magico creado por sequelize
   //gracias a la asociacion de tablas que se hizo en app.js
@@ -182,3 +166,4 @@ exports.getCheckout = (req, res, next) => {
     pageTitle: 'Checkout'
   });
 };
+ */

@@ -14,8 +14,9 @@ router.get('/products', shopController.getProducts);
 //ya NO sea exact, por lo tanto tener cuidado con el orden de las rutas para
 //que el comodin no impida que se llegue a otrasa rutas mas abajo, por ejemplo
 //si debajo de la ruta comodin pongo /products/delete , esta ruta nunca será alcanzada!!
-router.get('/products/:productId',shopController.getProduct);
 
+router.get('/products/:productId',shopController.getProduct);
+/* 
 router.get('/cart', shopController.getCart);
 
 router.post('/cart',shopController.postCart);
@@ -26,6 +27,6 @@ router.post('/delete-cart-product',shopController.postDeleteCartProduct);
 
 router.get('/orders', shopController.getOrders);
 
-router.get('/checkout', shopController.getCheckout);
+router.get('/checkout', shopController.getCheckout); */
 
 module.exports = router;
