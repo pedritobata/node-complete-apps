@@ -16,11 +16,14 @@ router.get('/products', shopController.getProducts);
 //si debajo de la ruta comodin pongo /products/delete , esta ruta nunca será alcanzada!!
 
 router.get('/products/:productId',shopController.getProduct);
-/* 
-router.get('/cart', shopController.getCart);
 
 router.post('/cart',shopController.postCart);
 
+
+router.get('/cart', shopController.getCart);
+
+
+/* 
 router.post('/create-order',shopController.postOrder);
 
 router.post('/delete-cart-product',shopController.postDeleteCartProduct);

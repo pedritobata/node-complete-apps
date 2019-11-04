@@ -45,33 +45,23 @@ exports.getIndex = (req, res, next) => {
     console.log(err);
   });
 };
-/* 
-exports.getCart = (req, res, next) => {
-  //para acceder al Cart que tiene el user, uso el metodo magico creado por sequelize
-  //gracias a la asociacion de tablas que se hizo en app.js
-  //en este caso es un get para obtener y Cart porque tiene una relacion belongdTo
-  req.user.getCart()
-  .then(cart=>{
-    //otro metodo magico getProducts() gracias a la asociacion de tablas y el belongsToMany
-    //sequelize se engcarga de los joins a las tablas de detalle , qué bacan!!!
-    //acá el return está por costumbre nomas, por si quisiera continuar con las promesas
-    return cart.getProducts()
-           .then(products=>{
-            res.render('shop/cart', {
-              path: '/cart',
-              pageTitle: 'Your Cart',
-              products: products
-            });
-           })
-           .catch(err=>console.log(err));
-  })
-  .catch(err=>console.log(err));
-  
-};
+
 
 exports.postCart = (req,res,next) => {
   const prodId = req.body.productId;
-  let fetchedCart;
+  Product.findById(prodId)
+  .then(product=>{
+    return req.user.addToCart(product);
+  })
+  .then(result=>{
+    console.log(result);
+    res.redirect('/cart');
+  })
+  .catch(err=>console.log(err));
+
+
+
+  /* let fetchedCart;
   let newQuantity = 1;
   req.user.getCart()
   .then(cart=>{
@@ -99,8 +89,24 @@ exports.postCart = (req,res,next) => {
   .then(()=>{
     res.redirect('/cart');
   })
-  .catch(err=>console.log(err));
+  .catch(err=>console.log(err)); */
 };
+
+
+
+exports.getCart = (req, res, next) => {
+  req.user.getCart()
+      .then(products=>{
+      res.render('shop/cart', {
+        path: '/cart',
+        pageTitle: 'Your Cart',
+        products: products
+      });
+      })
+      .catch(err=>console.log(err));
+};
+
+/* 
 
 exports.postDeleteCartProduct = (req,res, next) => {
    const prodId = req.body.productId;
