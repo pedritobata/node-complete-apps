@@ -13,7 +13,10 @@ exports.postAddProduct = (req, res, next) => {
   const imageUrl = req.body.imageUrl;
   const price = req.body.price;
   const description = req.body.description;
-  const product = new Product(title,price,description,imageUrl);
+  // notar que con bd no sql puedo agregar mas info
+  //por ejemplo en cada producto ingresado guardo la id del user al que pertence como referencia
+  //aunque podría guardar mas info del user si quisiera
+  const product = new Product(title,price,description,imageUrl, null, req.user._id);
   product.save()
   .then(result=>{
     console.log("Product added successfully!!");
@@ -67,23 +70,16 @@ exports.postEditProduct = (req,res,next) => {
   .catch(err=>console.log(err));
   
 };
-/* 
+
 exports.postDeleteProduct = (req,res, next) => {
     const productId = req.body.productId;
-    //se puede usar tambien Product.destroy(where)
-    //pero usaremos el findByPk y luego el destroy. parecido a lo que hicimos en postEditProduct
-    Product.findByPk(productId)
-    .then(product=>{
-      return product.destroy();
-    })
+    Product.deleteById(productId)
     .then(result=>{
-      console.log("Product deleted!!");
       res.redirect('/admin/products'); 
     })
     .catch(err=>console.log(err));
-    
 };
-*/
+
 
 exports.getProducts = (req, res, next) => {
   Product.fetchAll()

@@ -1,15 +1,23 @@
-const Sequelize = require('sequelize');
+const mongodb = require('mongodb');
+const getDB = require('../util/database').getDB;
 
-const sequelize = require('../util/database');
+class User {
+    constructor(username, email){
+        this.username = username;
+        this.email = email;
+    }
 
-const User = sequelize.define('user',{
-    id: {
-        type: Sequelize.INTEGER,
-        autoIncrement: true,
-        primaryKey: true
-    },
-    name: Sequelize.STRING,
-    email: Sequelize.STRING
-});
+    save(){
+        const db = getDB();
+        return db.collection('users').insertOne(this);
+    }
+
+    static findById(userId){
+        const db = getDB();
+        //tambien se puede usar find() y luego next() . recordar que find() devuelve un cursor
+        return db.collection('users').findOne({_id: new mongodb.ObjectId(userId)});
+    }
+
+}
 
 module.exports = User;

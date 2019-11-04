@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const errorController = require('./controllers/error');
 
 const mongoConnect = require('./util/database').mongoConnect;
+const User = require('./models/user');
 
 const app = express();
 
@@ -25,8 +26,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 //por lo tanto este MW solo se ejecutará cuando entren los requests!!, lo cual garantiza
 //que el user esté disponible para cuando empiezen los requests
 app.use((req,res,next)=>{
+    User.findById('5dc04e9e1c9d440000d37cb6')
+    .then(user=>{
+        req.user = user;
+        next();
+    })
+    .catch(err=>console.log(err));
     
-    next();
 });
 
 app.use('/admin', adminRoutes);

@@ -4,13 +4,14 @@ const mongodb = require('mongodb');
 class Product {
   //hemos puesto el id en el constructor para soportar la funcion de update tambien
   //pero la hemos puesto como ultimo argumento para que no malogre nuestras otras operaciones del CRUD!!
-  constructor(title,price,description,imageUrl, id){
+  constructor(title,price,description,imageUrl, id, userId){
     this.title = title;
     this.price = price;
     this.description = description;
     this.imageUrl = imageUrl;
     //tranformamos a al objeto id que maneja mongo!!
-    this._id = new mongodb.ObjectId(id);
+    this._id = id ?  new mongodb.ObjectId(id) : null;
+    this.userId = userId;
   }
 
   save(){
@@ -72,6 +73,14 @@ class Product {
   }
 
 
+  static deleteById(prodId){
+    const db = getDB();
+    return db.collection('products').deleteOne({_id: new mongodb.ObjectId(prodId)})
+    .then(result=>{
+      console.log('Product deleted!!!');
+    })
+    .catch(err=>console.log(err));
+  }
 
 }
 
