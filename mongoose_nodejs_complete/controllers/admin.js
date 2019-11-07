@@ -21,7 +21,9 @@ exports.postAddProduct = (req, res, next) => {
     title,
     price,
     description,
-    imageUrl
+    imageUrl,
+    userId : req.user //obtenemos el user completo del request y mongoose se encargará de
+    //extraer solo el _id !!
   });
   product.save()//este metodo save es de mongoose , ya no lo tuvimos que especificar nosotros
   //ya que el modelo creado por mongoose ya tiene todo!!
@@ -100,6 +102,16 @@ exports.postDeleteProduct = (req,res, next) => {
 
 exports.getProducts = (req, res, next) => {
   Product.find()
+  //opcionalmente , mongoose me da metodos para incluir o excluir info en el resultado
+  //coloco los atributos separados por un espacio y los que quiero excluir los antecedo por "-"
+  //select es para los datos de la coleccion principal
+  //populate es para hacer join con otra coleccion
+
+  //.select('title price -_id')
+  //.populate('userId')//como segundo argumento puedo mandar lo mismo que con select para incluir o excluir campos
+  //de la tabla que se hace el join
+  //ojo que populate No devuelve una promesa , habria que llamar despues a execPopulate(), eso ya es promesa
+
   .then(products => {
     res.render('admin/products', {
       prods: products,

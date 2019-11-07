@@ -1,4 +1,5 @@
 const Product = require('../models/product');
+const Order = require('../models/order');
 //const Cart = require('../models/cart');
 
 exports.getProducts = (req, res, next) => {
@@ -66,8 +67,11 @@ exports.postCart = (req,res,next) => {
 
 
 exports.getCart = (req, res, next) => {
-  req.user.getCart()
-      .then(products=>{
+  req.user
+    .populate('cart.items.productId')
+    .execPopulate()
+      .then(user=>{
+      const products = user.cart.items;
       res.render('shop/cart', {
         path: '/cart',
         pageTitle: 'Your Cart',
@@ -81,7 +85,7 @@ exports.getCart = (req, res, next) => {
 
 exports.postDeleteCartProduct = (req,res, next) => {
    const prodId = req.body.productId;
-   req.user.deleteItemFromCart(prodId)
+   req.user.removeFromCart(prodId)
    .then(result=>{
     res.redirect('/cart'); 
    })
@@ -90,8 +94,33 @@ exports.postDeleteCartProduct = (req,res, next) => {
 
 
 exports.postOrder = (req,res, next) => {
-  req.user.addOrder()
-  .then(result => {
+  req.user
+  .populate('cart.items.productId')
+  .execPopulate()
+  .then(user=>{
+    const products = user.cart.items.map(i=> {
+      return {
+        //para poder guardar toda la data del producto tenemos que 
+        //recurrir a una propiedad especial de mongoose : _doc
+        //tener en cuenta que el populate de arriba no hacia magia cuando
+        //el atributo a popular está anidado, osea el path no es directo
+        product: {...i.productId._doc},
+        quantity: i.quantity
+      }
+    });
+    const order = new Order({
+      products: products,
+      user: {
+        userId: user,//mongoose extrae el id del objeto user automaticamente
+        name: user.name
+      }
+    });
+    return order.save();
+  }).then(result => {
+    //limpiamos la carta con nuestro metodo custom
+    return req.user.clearCart();
+  })
+  .then(()=>{
     res.redirect('/orders');
   })
   .catch(err => console.log(err));
@@ -102,7 +131,8 @@ exports.postOrder = (req,res, next) => {
 
 
 exports.getOrders = (req, res, next) => {
-  req.user.getOrders()
+  //mongoose permite busqueda con una especie de where!!
+  Order.find({'user.userId' : req.user._id})
   .then(orders => {
       res.render('shop/orders', {
         path: '/orders',

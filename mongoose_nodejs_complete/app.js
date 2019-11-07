@@ -27,7 +27,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 //por lo tanto este MW solo se ejecutará cuando entren los requests!!, lo cual garantiza
 //que el user esté disponible para cuando empiezen los requests
 app.use((req,res,next)=>{
-    User.findById('5dc317ae09191f0eb1f22a55')
+    User.findById('5dc43f609912b105223839db')
     .then(user=>{
         req.user = user;//este user ya esta recargado por mongoose con metodos magicos!!
         next();
@@ -45,7 +45,7 @@ app.use(errorController.get404);
 //debido a que mi password tiene @
 //la solucion es mandar un segundo argumento como objeto especificando el user y pass
 mongoose
-.connect('mongodb+srv://cluster0-rw1t7.mongodb.net/test?retryWrites=true&w=majority',{
+.connect('mongodb+srv://cluster0-rw1t7.mongodb.net/shop?retryWrites=true&w=majority',{
     user: 'pedro',
     pass: 'R@tamacue1'
 })

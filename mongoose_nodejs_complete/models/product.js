@@ -16,7 +16,14 @@ const productSchema = new Schema({
     type: String,
     required: true
   },
-  imageUrl: String//puedo definir solo el tipo de dato y es como un atajo
+  imageUrl: String,//puedo definir solo el tipo de dato y es como un atajo
+  //voy a incluir una referencia al user usando la propiedad ref
+  userId: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',//usamos el nombre que le pusimos al modelo user
+    //hay que poner la ref tambien en el modelo del user
+    required: true
+  }
 });
 
 //creamos un modelo en base al schema definido y exportamos ese MODELO
