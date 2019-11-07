@@ -13,12 +13,20 @@ exports.postAddProduct = (req, res, next) => {
   const imageUrl = req.body.imageUrl;
   const price = req.body.price;
   const description = req.body.description;
-  // notar que con bd no sql puedo agregar mas info
-  //por ejemplo en cada producto ingresado guardo la id del user al que pertence como referencia
-  //aunque podría guardar mas info del user si quisiera
-  const product = new Product(title,price,description,imageUrl, null, req.user._id);
-  product.save()
-  .then(result=>{
+  // con mongoose, el modelo ya no es una clase normal de JS
+  //por lo tanto no usamos un cosntructor para generar la instancia
+  //usamos un objeto con las propiedades
+  const product = new Product({
+    //toy usando el atajo de ES6
+    title,
+    price,
+    description,
+    imageUrl
+  });
+  product.save()//este metodo save es de mongoose , ya no lo tuvimos que especificar nosotros
+  //ya que el modelo creado por mongoose ya tiene todo!!
+  .then(result=>{//a pesar que parece que mongoose retorna una promesa, eso NO es asi
+    //solo nos facilita metodos llamados igual que las promesas(then , catch)
     console.log("Product added successfully!!");
     res.redirect('/admin/products');
   })
@@ -57,23 +65,32 @@ exports.postEditProduct = (req,res,next) => {
   const imageUrl = req.body.imageUrl;
   const price = req.body.price;
   const description = req.body.description;
-  const product = new Product(title,price,description,imageUrl,prodId);
-
-   product.save()
-  .then(result=>{
+  //en mongoose, para actualizar, bsatará con obtener el producto usando mongoose
+  //y este nos será devuelto junto con metodos magicos, No es un objeto normal de JS
+  Product.findById(prodId)
+  .then(product => {
+    product.title = title;
+    product.price = price;
+    product.description = description;
+    product.imageUrl = imageUrl;
+    return product.save();//zas!! metodo magico, save() tambien actualiza
+    //pero porque le estamos definiendo los campos que han cambiado antes!!
+  }).then(result=>{
     console.log('Updated product!!');
     //hacemos la redicreccion dentro de esta promise
     //guarda con la asincronia. Sino redireccionamos acá , 
     //no veriamos la actualizacion en la vista hasta que la recarguemos manualmente!!
     res.redirect('/admin/products');
   })
-  .catch(err=>console.log(err));
+
+   
+.catch(err=>console.log(err));
   
 };
 
 exports.postDeleteProduct = (req,res, next) => {
     const productId = req.body.productId;
-    Product.deleteById(productId)
+    Product.findByIdAndDelete(productId)
     .then(result=>{
       res.redirect('/admin/products'); 
     })
@@ -82,7 +99,7 @@ exports.postDeleteProduct = (req,res, next) => {
 
 
 exports.getProducts = (req, res, next) => {
-  Product.fetchAll()
+  Product.find()
   .then(products => {
     res.render('admin/products', {
       prods: products,

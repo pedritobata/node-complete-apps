@@ -1,3 +1,30 @@
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
+
+// a pesar que estamos usando mongo , el cual nos da mucha flexibilidad
+// podemos usar esquemas un poco mas rigidos para definir nuestra data
+const productSchema = new Schema({
+  title: {
+    type: String,//este tipo de dato es de JS
+    required: true
+  },
+  price: {
+    type: Number,
+    required: true
+  },
+  description: {
+    type: String,
+    required: true
+  },
+  imageUrl: String//puedo definir solo el tipo de dato y es como un atajo
+});
+
+//creamos un modelo en base al schema definido y exportamos ese MODELO
+//por debajo mongoose creará una collection en plural y minusculas ('products')
+module.exports = mongoose.model('Product', productSchema);
+
+
+
 /* const getDB = require('../util/database').getDB;
 const mongodb = require('mongodb');
 

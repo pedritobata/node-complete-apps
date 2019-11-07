@@ -2,7 +2,9 @@ const Product = require('../models/product');
 //const Cart = require('../models/cart');
 
 exports.getProducts = (req, res, next) => {
-  Product.fetchAll()
+  //mongoose tiene el metodo find() el cual No devuelve un cursos como mongo normal
+  //pero puedo obtener un cursor usando find().cursor()  !!
+  Product.find()//find devuelve defrente un array
   .then(products=>{
     res.render('shop/product-list', {
       prods: products,
@@ -18,7 +20,7 @@ exports.getProducts = (req, res, next) => {
 exports.getProduct = (req,res,next) => {
  
   const prodId = req.params.productId;
-  //Ojo que en las vistas que invocan este controller el parametro id se debe llamar _id
+  //por suerte mongoose tiene un metodo findById!!
   Product.findById(prodId)
   .then(product=>{
     res.render('shop/product-detail', {
@@ -33,7 +35,7 @@ exports.getProduct = (req,res,next) => {
 
 exports.getIndex = (req, res, next) => {
   
-  Product.fetchAll()
+  Product.find()
   .then(products=>{
     res.render('shop/index', {
       prods: products,
