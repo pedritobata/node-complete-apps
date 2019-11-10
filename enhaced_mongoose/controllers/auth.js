@@ -1,3 +1,5 @@
+const User = require('../models/user');
+
 
 exports.getLogin = (req,res,next) => {
     console.log(req.get('Cookie'));
@@ -16,7 +18,7 @@ exports.getLogin = (req,res,next) => {
     //  const loggedIn = req.get('Cookie').split('=')[1].trim() === 'true';
 
     //con session
-    const loggedIn = req.session.loggedIn;
+    const loggedIn = req.session.isLoggedIn;
     console.log(req.session);
     res.render('auth/login', {
         pageTitle: 'Login',
@@ -49,9 +51,17 @@ exports.postLogin = (req,res,next) => {
     //credenciales, pero asumiremos que las credenciales fueron validas!!
     //express session nos guarda la session en una variable anexada al request en el momento
     //que el MW de app.js creo la sesion!!
-    req.session.loggedIn = true;//asignamos una variable nuestra para que indique que el user está logueado
 
+    //en este login vamos a cargar recien al user a la session
 
+    User.findById('5dc43f609912b105223839db')
+    .then(user => {
+      req.session.user = user;
+      req.session.isLoggedIn = true;//asignamos una variable nuestra para que indique que el user está logueado
+      res.redirect('/');
+    })
+    .catch(err => console.log(err));
+    
 
-    res.redirect('/');
+    
 };

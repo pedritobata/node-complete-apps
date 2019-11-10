@@ -40,14 +40,14 @@ app.use(session({
   store: store
 }));
 
-app.use((req, res, next) => {
+/* app.use((req, res, next) => {
   User.findById('5dc43f609912b105223839db')
     .then(user => {
       req.user = user;
       next();
     })
     .catch(err => console.log(err));
-});
+}); */
 
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
