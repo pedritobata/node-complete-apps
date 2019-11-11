@@ -53,15 +53,31 @@ exports.postLogin = (req,res,next) => {
     //que el MW de app.js creo la sesion!!
 
     //en este login vamos a cargar recien al user a la session
+    //RECONTRA GUARDIA:  el user que se guarda dentro de la session en la BD NO ES EL QUE TIENE LA MAGIA DE MONGOOSE!!!!
+    //es por esto que en algunas operaciones donde se necesiten esos metodos magicos va a dar error
+    //para esto , en app.js hay que obtener para cada peticion el user, pero obtenerlo desde la collection user
 
     User.findById('5dc43f609912b105223839db')
     .then(user => {
       req.session.user = user;
       req.session.isLoggedIn = true;//asignamos una variable nuestra para que indique que el user está logueado
-      res.redirect('/');
+      req.session.save(err => {//guardamos en la BD usando save() porque si grabamos normalmente
+        //podría pasar que el redirect se dispare antes de grabar en la Bd por la asincronia!!
+        console.log(err);
+        res.redirect('/');
+      });
     })
     .catch(err => console.log(err));
     
 
     
+};
+
+
+exports.postLogout = (req,res,next) => {
+    //destroy elimina el objeto session de la BD!!
+    req.session.destroy(err=>{
+        console.log(err);
+        res.redirect('/');
+    });
 };

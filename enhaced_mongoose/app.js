@@ -40,14 +40,19 @@ app.use(session({
   store: store
 }));
 
-/* app.use((req, res, next) => {
-  User.findById('5dc43f609912b105223839db')
+app.use((req, res, next) => {
+  if(!req.session.user){
+    return next();//pongo return para que ya no se ejecute el resto de este metodo,el next por
+    //si solo no hace que salgamos del metodo
+  }
+  User.findById(req.session.user._id)//obtenemos es user de la collection users NO
+  //desde la collection sessions, la cual solo tiene info basica del user y NO los metodos magicos!!
     .then(user => {
       req.user = user;
       next();
     })
     .catch(err => console.log(err));
-}); */
+});
 
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
