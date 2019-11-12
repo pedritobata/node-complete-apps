@@ -66,7 +66,7 @@ mongoose
   pass: 'R@tamacue1'
 })
   .then(result => {
-    User.findOne().then(user => {
+    /* User.findOne().then(user => {
       if (!user) {
         const user = new User({
           name: 'perico',
@@ -77,7 +77,7 @@ mongoose
         });
         user.save();
       }
-    });
+    }); */
     console.log('Connected via Mongoose!!!');
     app.listen(3000);
   })

@@ -1,4 +1,5 @@
 const User = require('../models/user');
+const bcrypt = require('bcryptjs');
 
 
 exports.getLogin = (req,res,next) => {
@@ -26,6 +27,14 @@ exports.getLogin = (req,res,next) => {
         isAuthenticated: loggedIn
     });
 };
+
+exports.getSignup = (req, res, next) => {
+    res.render('auth/signup', {
+      path: '/signup',
+      pageTitle: 'Signup',
+      isAuthenticated: false
+    });
+  };
 
 exports.postLogin = (req,res,next) => {
     //si cargamos un atributo en el request e inmediatamente llamamos
@@ -71,6 +80,42 @@ exports.postLogin = (req,res,next) => {
     
 
     
+};
+
+exports.postSignup = (req, res, next) => {
+    //si existe el user no hacemos nada. Si no existe lo creamos
+    const email = req.body.email;
+    const password = req.body.password;
+    const confirmPassword = req.body.confirmPassword;
+    User.findOne({ email: email })
+    .then(userDoc => {
+        if(userDoc){
+            return res.redirect('/signup');
+        }
+        //el segundo argumento es el nivel de proteccion de la encriptacion
+        //OJO que esta operacion es asincrona
+        //Todo este bloque de promises lo anidamos en el de afuera porque
+        //si se cumple la condicion anterior, si el user existe, el return tiene
+        //que salir directamente del metodo. Notar que el return esta dentro del bloque then
+        //principal, entonces no sale del metodo directamente.
+        //por tanto si este bloque que sigue lo saco al nivel del promise de afuera entonces
+        //nos saltariamos el bcrypt, lo cual haria que hashPassword no exista y por tanto nos de error
+        //que se necesita un password!!
+        return bcrypt.hash(password, 12)
+        .then(hashedPassword => {
+            const user = new User({
+                email: email,
+                password: hashedPassword,
+                cart: { items: [] }
+            });
+            return user.save();
+        })
+        .then(result => {
+            res.redirect('/login');
+        });
+    })
+    .catch(err=>console.log(err));
+
 };
 
 
