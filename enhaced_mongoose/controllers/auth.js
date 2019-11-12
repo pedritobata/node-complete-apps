@@ -36,7 +36,7 @@ exports.getSignup = (req, res, next) => {
     });
   };
 
-exports.postLogin = (req,res,next) => {
+exports.postLogin2 = (req,res,next) => {
     //si cargamos un atributo en el request e inmediatamente llamamos
     //a redirect, con esto ya se emitió un response, lo cual hace que el request anterior
     //manque y por lo tanto se habrá perido mi atributo de login
@@ -77,9 +77,37 @@ exports.postLogin = (req,res,next) => {
       });
     })
     .catch(err => console.log(err));
-    
+};
 
-    
+exports.postLogin = (req,res,next) => {
+    const email = req.body.email;
+    const password = req.body.password;
+    User.findOne({ email: email })
+    .then(user=>{
+        if(!user){
+            return res.redirect('/login');
+        }
+        bcrypt.compare(password, user.password)
+        .then(doMatch => {
+            if(doMatch){
+                req.session.user = user;
+                req.session.isLoggedIn = true;
+                return req.session.save(err=>{
+                    //porsiaca este callback NO es una promesa y NO SE EJECUTA SOLO CUANDO HAYA ERROR
+                    //pero nos pasa un argumento con el error si lo hubiera
+                    console.log(err);
+                    res.redirect('/');
+                });
+            }
+            res.redirect('/login');
+
+        })
+        .catch(err=>{
+            console.log(err);
+            res.redirect('/login');
+        });
+    })
+    .catch(err=>console.log(err));
 };
 
 exports.postSignup = (req, res, next) => {
