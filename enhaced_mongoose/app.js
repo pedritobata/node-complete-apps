@@ -13,6 +13,7 @@ const MONGODB_URI = 'mongodb+srv://pedro:R@tamacue1@cluster0-rw1t7.mongodb.net/s
 
 const csrf = require('csurf');
 const csrfProtection = csrf();//tambien podriamos mandar un argumento a csrf para confifurar cosas
+const flash = require('connect-flash');
 
 const app = express();
 
@@ -51,6 +52,9 @@ app.use(session({
 //vista. La vista cogerá ese token y lo agregará en un input hidden con el nombre exacto "_csrf"
 //Hay que agregar a mano ese campo hidden en todas las vistas  que tengan un form post !!!
 app.use(csrfProtection);
+
+//este MW es para enviar mensajes flash entre redirecciones
+app.use(flash());
 
 app.use((req, res, next) => {
   if(!req.session.user){

@@ -19,20 +19,29 @@ exports.getLogin = (req,res,next) => {
     //  const loggedIn = req.get('Cookie').split('=')[1].trim() === 'true';
 
     //con session
+    //Ojo que este parametro ya lo estamos enviado desde el MW en app.js usando req.locals!!
     const loggedIn = req.session.isLoggedIn;
-    console.log(req.session);
+    //console.log(req.session);
+    //como flash me devuelve un array vacio [] cada vez que no hay mensajes definidos
+    //y como queremos que mas bien nos devuelva null o undefined, validamos para asignarlo nosotros
+    let errorMsg = req.flash('error');//recuperamos el mensaje flash cargado en el req anterior
+    console.log(errorMsg);
+    if(errorMsg.length > 0){
+        errorMsg = errorMsg[0];;
+    }else{
+        errorMsg = null;
+    }
     res.render('auth/login', {
         pageTitle: 'Login',
         path: '/login',
-        isAuthenticated: loggedIn
+        errorMessage: errorMsg
     });
 };
 
 exports.getSignup = (req, res, next) => {
     res.render('auth/signup', {
       path: '/signup',
-      pageTitle: 'Signup',
-      isAuthenticated: false
+      pageTitle: 'Signup'
     });
   };
 
@@ -85,6 +94,10 @@ exports.postLogin = (req,res,next) => {
     User.findOne({ email: email })
     .then(user=>{
         if(!user){
+            //el package connect-flash nos agrega al req este metodo para poder
+            //enviar mensajes flash
+            console.log('No se encontró el user!!');
+            req.flash('error','Invalid email or password');
             return res.redirect('/login');
         }
         bcrypt.compare(password, user.password)
@@ -99,8 +112,12 @@ exports.postLogin = (req,res,next) => {
                     res.redirect('/');
                 });
             }
-            res.redirect('/login');
+            return req.flash('error','Invalid email or password yeah!!');;
 
+        })
+        .then(doMatch=>{
+            
+            return res.redirect('/login');
         })
         .catch(err=>{
             console.log(err);
