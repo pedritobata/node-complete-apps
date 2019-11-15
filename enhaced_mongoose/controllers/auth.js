@@ -3,6 +3,8 @@ const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const sendgrigTransport = require('nodemailer-sendgrid-transport');
 
+const { validationResult } = require('express-validator/check');
+
 const crypto = require('crypto');//esta libreria es de Nodejs
 
 const transporter = nodemailer.createTransport(sendgrigTransport({
@@ -51,7 +53,14 @@ exports.getLogin = (req,res,next) => {
 exports.getSignup = (req, res, next) => {
     res.render('auth/signup', {
       path: '/signup',
-      pageTitle: 'Signup'
+      pageTitle: 'Signup',
+      errorMessage: '',
+      oldInput: {
+          email: '',
+          password: '',
+          confirmPassword: '',
+      },
+      validationErrors: []
     });
   };
 
@@ -135,15 +144,39 @@ exports.postLogin = (req,res,next) => {
 };
 
 exports.postSignup = (req, res, next) => {
-    //si existe el user no hacemos nada. Si no existe lo creamos
+    
     const email = req.body.email;
     const password = req.body.password;
     const confirmPassword = req.body.confirmPassword;
-    User.findOne({ email: email })
-    .then(userDoc => {
-        if(userDoc){
-            return res.redirect('/signup');
-        }
+    //usamos el validator
+    //este metodo extrae los errores cargados por el MW en el request
+    //hemos agregado la propiedad "novalidate" en el form de la vista para
+    //desactivar las validaciones de html 5
+     const errors = validationResult(req);
+    if(!errors.isEmpty()){//este metodo es de validator No de JS
+        console.log('errors:', errors.array());
+        return res.status(422).
+            render('auth/signup', {
+                pageTitle: 'Signup',
+                path: '/signup',
+                //array() es otro metodo de validator, nos devuelve un array de objects
+                //dentro de cada objeto error hay info sobre el error
+                //entre ellas esta el mensaje por defecto que produce validator
+                //esto se puede sobreescribir en el MW con el metodo withMessage()
+                errorMessage: errors.array()[0].msg,
+                oldInput: {
+                    email: email,
+                    password: password,
+                    confirmPassword: confirmPassword,
+                },
+                validationErrors: errors.array()
+            });
+    }
+
+    //si existe el user no hacemos nada. Si no existe lo creamos
+
+    //La validacion de la existencia del email se movió al validator que está en routes
+  
         //el segundo argumento es el nivel de proteccion de la encriptacion
         //OJO que esta operacion es asincrona
         //Todo este bloque de promises lo anidamos en el de afuera porque
@@ -153,7 +186,7 @@ exports.postSignup = (req, res, next) => {
         //por tanto si este bloque que sigue lo saco al nivel del promise de afuera entonces
         //nos saltariamos el bcrypt, lo cual haria que hashPassword no exista y por tanto nos de error
         //que se necesita un password!!
-        return bcrypt.hash(password, 12)
+        bcrypt.hash(password, 12)
         .then(hashedPassword => {
             const user = new User({
                 email: email,
@@ -172,8 +205,6 @@ exports.postSignup = (req, res, next) => {
             });
         })
         .catch(err=>{console.log(err)});
-    })
-    .catch(err=>console.log(err));
 
 };
 
