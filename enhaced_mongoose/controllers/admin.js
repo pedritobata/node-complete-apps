@@ -1,5 +1,6 @@
 const Product = require('../models/product');
 const { validationResult } = require('express-validator');
+const mongoose = require('mongoose');
 
 exports.getAddProduct = (req, res, next) => {
   res.render('admin/edit-product', {
@@ -46,12 +47,18 @@ exports.postAddProduct = (req, res, next) => {
   product
     .save()
     .then(result => {
-      // console.log(result);
+      //throw new Error('Dummy error');
       console.log('Created Product');
       res.redirect('/admin/products');
     })
     .catch(err => {
       console.log(err);
+      //res.redirect('/500');
+      //si mandamos un Error a traves de next(), el MW especial que creamos en app.js lo capturará
+      const error = new Error(err);
+      error.httpStatusCode = 500;//podemos agregar ingo adicional al error
+      
+      return next(error);
     });
 };
 
@@ -123,7 +130,13 @@ exports.postEditProduct = (req, res, next) => {
       });
     })
     
-    .catch(err => console.log(err));
+    .catch(err => {
+      console.log(err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      
+      return next(error);
+    });
 };
 
 exports.getProducts = (req, res, next) => {
@@ -152,5 +165,11 @@ exports.postDeleteProduct = (req, res, next) => {
       console.log('DESTROYED PRODUCT');
       res.redirect('/admin/products');
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+      console.log(err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      
+      return next(error);
+    });
 };

@@ -57,6 +57,15 @@ app.use(csrfProtection);
 app.use(flash());
 
 app.use((req, res, next) => {
+  //Cuando lanzamos un error normal fuera de un Promise entonces
+  //el MW especial de express lo reconocerá, asi el error no haya sido enviado dentro de next(error)
+  //RECONTRA GUARDIA : si el MW especial solo tiene un res.redirect(/500), entonces
+  //se producirá el fatídico LOOP INFINITO!!!. Esto debido a que el redirect ocasiona que
+  //el request vuelva a generarse y vuelva a caer en el MW en el que estamos ahora
+  //este, a su vez, debido al throw Error lo volverá a mandar al MW especial y ......
+  //throw new Error('Dummy error');
+
+
   if(!req.session.user){
     return next();//pongo return para que ya no se ejecute el resto de este metodo,el next por
     //si solo no hace que salgamos del metodo
@@ -64,10 +73,18 @@ app.use((req, res, next) => {
   User.findById(req.session.user._id)//obtenemos es user de la collection users NO
   //desde la collection sessions, la cual solo tiene info basica del user y NO los metodos magicos!!
     .then(user => {
+      if(!user){
+        return next();
+      }
       req.user = user;
       next();
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+       //si lanzamos un error normal dentro de una Promesa como ahora
+       //el MW especial que definimos para catchear errores no lo reconocerá
+       //este MW solo reconoce los errores que se hayan agregado al next(error)!!
+       throw new Error(err);
+    });
 });
 
 //MW para agregar parametros a todas las peticiones
@@ -93,7 +110,17 @@ app.use('/admin', adminRoutes);
 app.use(shopRoutes);
 app.use(authRoutes);
 
+app.use('/500', errorController.get500);
 app.use(errorController.get404);
+
+//Este es un MW especial que nos proporciona express
+//tiene un argumento extra al comienzo, el error.
+//cuando express detecte que se ha generado un next con un Error como argumento (ver controller admin.js)
+//se saltará todos los MW "normales" y solo entrará a los MW especiales. SOLO para este caso
+//por eso no hay problema con nuestro MW de 404 porque no chocan
+app.use((error, req, res, next) => {
+  res.redirect('/500');
+}); 
 
 mongoose
 .connect('mongodb+srv://cluster0-rw1t7.mongodb.net/shop?retryWrites=true&w=majority',{
