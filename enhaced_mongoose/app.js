@@ -14,6 +14,7 @@ const MONGODB_URI = 'mongodb+srv://pedro:R@tamacue1@cluster0-rw1t7.mongodb.net/s
 const csrf = require('csurf');
 const csrfProtection = csrf();//tambien podriamos mandar un argumento a csrf para confifurar cosas
 const flash = require('connect-flash');
+const multer = require('multer');
 
 const app = express();
 
@@ -21,6 +22,38 @@ const store = new MongoDBStore({
   uri: MONGODB_URI,
   collection: 'sessions'//nombre a criterio
 });
+
+//defino un multer storage para mi file tipo imagen
+const fileStorage = multer.diskStorage({
+  //a ambos campos les mandamos un callback y nos da la opcion de configurar el file y hacer logica
+  //al pasarnos el request, el file y un callback cb
+  //este cb es el que nos permitirá decidir en qué momento se lanza un error y cual es el nombre
+  //exacto del file y su path.
+  destination: (req, file, cb) => {
+    //primer argumento: error(en el momento en que le pongo un mensaje, multer tomará como que
+    //que queremos lanzar error es ese momento de la logica)
+    //con null le dicmos que normal, que asigne el destination (que es el segundo argumento)
+    cb(null, 'images');
+  },
+  filename: (req, file, cb) => {
+    //le generamos un nombre unico al file anteponiendo la fecha y hora exacta de le creacion
+    cb(null, new Date().toISOString() + '-' + file.originalname);
+  },
+});
+
+//el filtro de tipos de imagenes lo manejamos en otro parametro
+//en este caso es un callback igual a los que asignamos en el fileStorage
+const fileFilter = (req,file,cb) => {
+  if(file.mimeType === 'image/png' ||
+     file.mimeType === 'image/jpg' ||
+     file.mimeType === 'image/jpeg'){
+      //si el tipo de imagen es el deseado , true indica que proceda nomas
+      //null indica que no hay mensaje de error
+      cb(null, true);
+  }else {
+      cb(null, false);
+  }
+}
 
 app.set('view engine', 'ejs');
 app.set('views', 'views');
@@ -30,6 +63,20 @@ const shopRoutes = require('./routes/shop');
 const authRoutes = require('./routes/auth');
 
 app.use(bodyParser.urlencoded({ extended: false }));
+//cuando hay archivos binarios que vienen en el request ,como imagenes,
+//usamos otro parseador extra , multer
+//le decimos a multer que hay UN campo que queremos parsear y cual es su nombre "image"
+//ademas podemos configurar multer y decirle por ejemplo la carpeta de destino del file (dest)
+//si no existe la ruta , multer la crea!! . 
+//En este caso ya el buffer binario que generaba multer se convierte a un file
+//app.use(multer({ dest: 'images' }).single('image'));
+
+//tambien puedo usar una propiedad mas especifica (storage) que me
+//permite gestionar la subida del archivo, como nombre exacto, path, logica para validar etc
+//ver arriba
+app.use(multer({ storage: fileStorage, fileFilter: fileFilter}).single('image'));
+
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
   secret: 'my secret',
