@@ -15,11 +15,31 @@ exports.getAddProduct = (req, res, next) => {
 
 exports.postAddProduct = (req, res, next) => {
   const title = req.body.title;
-  const imageUrl = req.file;//el MW de multer parsea y anexa al req el binario con el nombre file
+  const image = req.file;//el MW de multer parsea y anexa al req el binario con el nombre file
   const price = req.body.price;
   const description = req.body.description;
 
-  console.log(imageUrl);
+  //si no paso el filtro de formato permitido en el MW file no se habrá cargado al request
+  if(!image){
+    console.log('image:',image);
+    return res.status(422).render('admin/edit-product', {
+      pageTitle: 'Add Product',
+      path: '/admin/add-product',
+      editing: false,
+      hasError: true,
+      product: {
+          title: title,
+          price: price,
+          description: description,
+          //imageUrl: imageUrl
+      },
+      errorMessage: 'Attached file is not an image!',
+      validationErrors: []
+   });
+  }
+
+  //lo que guardaremos en la BD para la imagen es solo su path!!
+  const imageUrl = image.path;
 
   const errors = validationResult(req);
   if(!errors.isEmpty()){
@@ -32,7 +52,7 @@ exports.postAddProduct = (req, res, next) => {
                   title: title,
                   price: price,
                   description: description,
-                  imageUrl: imageUrl
+                  //imageUrl: imageUrl
               },
               errorMessage: errors.array()[0].msg
            });
@@ -92,7 +112,7 @@ exports.postEditProduct = (req, res, next) => {
   const prodId = req.body.productId;
   const updatedTitle = req.body.title;
   const updatedPrice = req.body.price;
-  const updatedImageUrl = req.body.imageUrl;
+  const updatedImage = req.file;
   const updatedDesc = req.body.description;
 
   const errors = validationResult(req);
@@ -106,7 +126,7 @@ exports.postEditProduct = (req, res, next) => {
                   title: updatedTitle,
                   price: updatedPrice,
                   description: updatedDesc,
-                  imageUrl: updatedImageUrl,
+                  //imageUrl: updatedImageUrl,
                   _id: prodId
               },
               errorMessage: errors.array()[0].msg,
@@ -124,7 +144,10 @@ exports.postEditProduct = (req, res, next) => {
       product.title = updatedTitle;
       product.price = updatedPrice;
       product.description = updatedDesc;
-      product.imageUrl = updatedImageUrl;
+      if(updatedImage){//solo guardamos el path de la imagen si el usuario seleccionó una imagen valida
+        product.imageUrl = updatedImage.path;
+      }
+      
       return product.save()
       .then(result => {
         console.log('UPDATED PRODUCT!');

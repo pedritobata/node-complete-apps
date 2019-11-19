@@ -44,9 +44,9 @@ const fileStorage = multer.diskStorage({
 //el filtro de tipos de imagenes lo manejamos en otro parametro
 //en este caso es un callback igual a los que asignamos en el fileStorage
 const fileFilter = (req,file,cb) => {
-  if(file.mimeType === 'image/png' ||
-     file.mimeType === 'image/jpg' ||
-     file.mimeType === 'image/jpeg'){
+  if(file.mimetype === 'image/png' ||
+     file.mimetype === 'image/jpg' ||
+     file.mimetype === 'image/jpeg'){
       //si el tipo de imagen es el deseado , true indica que proceda nomas
       //null indica que no hay mensaje de error
       cb(null, true);
@@ -76,8 +76,17 @@ app.use(bodyParser.urlencoded({ extended: false }));
 //ver arriba
 app.use(multer({ storage: fileStorage, fileFilter: fileFilter}).single('image'));
 
-
+//static asume que llos recursos en esta carpeta estan en el root de la aplicacion
+//osea que los recursos seran invocados directamente como:
+// http://localhost:3000/css/main.css,  sin el public. el public solo dice donde estan nuestros
+//recursos pero no tiene que ver nada con la url
 app.use(express.static(path.join(__dirname, 'public')));
+//si queremos asignar qué request especificos iran a esta carpeta lo ponemos como primer argumento
+//asi le decimos a express que el root para nuestros recursos guardados en la carpeta images es "/images" y NO "/"
+app.use('/images',express.static(path.join(__dirname, 'images')));
+
+
+
 app.use(session({
   secret: 'my secret',
   resave: false,//para que no se guarde la session con cada request
@@ -166,6 +175,7 @@ app.use(errorController.get404);
 //se saltará todos los MW "normales" y solo entrará a los MW especiales. SOLO para este caso
 //por eso no hay problema con nuestro MW de 404 porque no chocan
 app.use((error, req, res, next) => {
+  console.log(error);
   res.redirect('/500');
 }); 
 
