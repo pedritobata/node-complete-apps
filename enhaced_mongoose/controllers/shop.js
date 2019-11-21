@@ -2,6 +2,8 @@ const Product = require('../models/product');
 const Order = require('../models/order');
 const fs = require('fs');
 const path = require('path');
+const PDFDocument = require('pdfkit');
+
 
 exports.getProducts = (req, res, next) => {
   Product.find()
@@ -124,12 +126,67 @@ exports.getOrders = (req, res, next) => {
 
 exports.getInvoice = (req,res,next) => {
   const orderId = req.params.orderId;
-  const invoicePath = path.join('data','invoice', 'invoice_' + orderId + '.pdf');
-  fs.readFile(invoicePath, (err, data) => {
+  Order.findById(orderId)
+  .then(order=>{
+    //validamos que la orden le pertenezca al user logueado
+    if(!order){
+      return next(new Error('No order found'));
+    }
+    if(String(order.user.userId) !== req.user._id.toString()){
+      return next(new Error('Unauthorized'));
+    }
+
+  const invoiceName = 'invoice_' + orderId + '.pdf';
+  const invoicePath = path.join('data','invoice',invoiceName );
+ /*  fs.readFile(invoicePath, (err, data) => {
     if(err){
       console.log(err);
       return next();
     }
-    res.send(data);
+    res.setHeader('Content-Type','application/pdf');
+    //el disposition sirve para decirle al browser info sobre el archivo
+    //inline hace que se abra el archivo en el browser, attachment dice que se se abra una ventana de descarga
+    //en el OS
+    res.setHeader('Content-Disposition','inline; filename="' + invoiceName + '"');
+    res.send(data); 
   });
+  */
+
+  //El aproach anterior con fs.readFile NO es eficiente para archivos grandes porque
+  //el servidor enviará TODO el archivo al browser y esto puede demorar en el cliente
+  //para solucionar esto usamos streams
+  /* const file = fs.createReadStream(invoicePath);
+  res.setHeader('Content-Type','application/pdf');
+  res.setHeader('Content-Disposition','inline; filename="' + invoiceName + '"');
+  file.pipe(res);
+  //anexamos el stream al response el cual tambie es un writeable stream por eso lo soporta!! 
+  
+ */
+
+  //Como bonus vamos a usar pdfkit para crear un pdf al vuelo
+  const pdfDoc = new PDFDocument();
+  res.setHeader('Content-Type','application/pdf');
+  res.setHeader('Content-Disposition','inline; filename="' + invoiceName + '"');
+
+  //anexamos el pdf a mi repo
+  pdfDoc.pipe(fs.createWriteStream(invoicePath));//recordar que el pipe solo anexa a objetos writeable stream
+  pdfDoc.pipe(res);//anexamos al response tambien
+  //editamos el pdf
+  pdfDoc.fontSize(26).text('Invoice');
+  pdfDoc.text('=======================');
+  let totalPrice = 0;
+  order.products.forEach(prod => {
+    totalPrice += prod.quantity * prod.product.price;
+    pdfDoc.fontSize(14).text(
+      `${prod.product.title} - x${prod.quantity}  $${prod.product.price}`  
+      );
+  });
+  pdfDoc.text('----------');
+  pdfDoc.fontSize(20).text('Total price: $' + totalPrice);
+
+  pdfDoc.end();//con esto terminamos el stream
+
+  })
+  .catch(err=>console.log(err));
+  
 };

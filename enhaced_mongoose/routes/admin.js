@@ -20,7 +20,7 @@ router.post('/add-product',[
     body('title')
         .isString()
         .trim()
-        .isLength({ min: 5 }),
+        .isLength({ min: 3 }),
     /* body('imageUrl')
         .isURL(), */
     body('price')
@@ -38,7 +38,7 @@ router.post('/edit-product',[
     body('title')
         .isString()
         .trim()
-        .isLength({ min: 5 }),
+        .isLength({ min: 3 }),
    /*  body('imageUrl')
         .isURL(), */
     body('price')

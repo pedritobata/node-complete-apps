@@ -1,6 +1,7 @@
 const Product = require('../models/product');
 const { validationResult } = require('express-validator');
 const mongoose = require('mongoose');
+const fileHelper = require('../util/file');
 
 exports.getAddProduct = (req, res, next) => {
   res.render('admin/edit-product', {
@@ -41,8 +42,10 @@ exports.postAddProduct = (req, res, next) => {
   //lo que guardaremos en la BD para la imagen es solo su path!!
   const imageUrl = image.path;
 
+
   const errors = validationResult(req);
   if(!errors.isEmpty()){
+    console.log('!errors.isEmpty()', errors);
     return res.status(422).render('admin/edit-product', {
               pageTitle: 'Add Product',
               path: '/admin/add-product',
@@ -145,6 +148,8 @@ exports.postEditProduct = (req, res, next) => {
       product.price = updatedPrice;
       product.description = updatedDesc;
       if(updatedImage){//solo guardamos el path de la imagen si el usuario seleccionó una imagen valida
+        //borramos la imagen anterior que está en el repo
+        fileHelper.deleteFile(product.imageUrl);
         product.imageUrl = updatedImage.path;
       }
       
@@ -185,12 +190,19 @@ exports.postDeleteProduct = (req, res, next) => {
   //Product.findByIdAndRemove(prodId)
   //AUTHORIZATION
   //solo voy a borrar los productos que haya creado el current user
-   Product.deleteOne({ _id: prodId, userId: req.user._id })
+  Product.findById(prodId)
+  .then(product => {
+    if(!product){
+      return next(new Error('Product not found!!'));
+    }
+    Product.deleteOne({ _id: prodId, userId: req.user._id })
     .then(() => {
-      console.log('DESTROYED PRODUCT');
-      res.redirect('/admin/products');
+        console.log('DESTROYED PRODUCT');
+        fileHelper.deleteFile(product.imageUrl);
+        return res.redirect('/admin/products');
     })
-    .catch(err => {
+  })
+  .catch(err => {
       console.log(err);
       const error = new Error(err);
       error.httpStatusCode = 500;
