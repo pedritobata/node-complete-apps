@@ -4,6 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
 
+const ITEMS_PER_PAGE = 2;
+
 
 exports.getProducts = (req, res, next) => {
   Product.find()
@@ -34,12 +36,28 @@ exports.getProduct = (req, res, next) => {
 };
 
 exports.getIndex = (req, res, next) => {
+  const page = req.query.page;
+  let totalItems = 0;
+
   Product.find()
-    .then(products => {
+  .countDocuments(numProducts => {//count solo trae la cantidad de registros NO los registros en sí!!
+    totalItems = numProducts;
+    Product.find()//como esto devuelve un cursor puedo hacer mas operaciones
+    //y traerme la data por paginacion
+    .skip((page - 1) * ITEMS_PER_PAGE)//digo cuantos registros me salto de la bd
+    .limit(ITEMS_PER_PAGE)//digo cuantos registros quiero traer de la bd despues de saltarme los anteriores
+  })
+  .then(products => {
       res.render('shop/index', {
         prods: products,
         pageTitle: 'Shop',
-        path: '/'
+        path: '/',
+        totalProducts: totalItems,
+        hasNextPage: ITEMS_PER_PAGE * page < totalItems,
+        hasPreviousPage: page > 1,
+        nextPage: page + 1,
+        previousPage: page - 1,
+        lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE) 
       });
     })
     .catch(err => {
