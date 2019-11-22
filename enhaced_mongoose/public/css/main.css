@@ -206,6 +206,7 @@ form {
   background: white;
   border-radius: 3px;
   cursor: pointer;
+  outline: none;
 }
 
 .btn:hover,

@@ -53,6 +53,7 @@ exports.getProduct = (req, res, next) => {
     .catch(err => console.log(err));
 };
 
+
 exports.getIndex = (req, res, next) => {
   //artificios:
   //el signo "+" antepuesto a un string lo castea a number
