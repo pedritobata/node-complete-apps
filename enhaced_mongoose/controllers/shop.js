@@ -8,13 +8,31 @@ const ITEMS_PER_PAGE = 2;
 
 
 exports.getProducts = (req, res, next) => {
+  const page = typeof req.query.page == undefined ? 1 : +req.query.page  || 1;
+ 
+  let totalItems = 0;
+
   Product.find()
-    .then(products => {
-      console.log(products);
+  .countDocuments()
+  .then(numProducts => {
+    totalItems = numProducts;
+    return Product.find()
+    .skip((page - 1) * ITEMS_PER_PAGE)
+    .limit(ITEMS_PER_PAGE)
+    
+  })
+  .then(products => {
       res.render('shop/product-list', {
         prods: products,
         pageTitle: 'All Products',
-        path: '/products'
+        path: '/products',
+        totalProducts: totalItems,
+        currentPage: page,
+        hasNextPage: ITEMS_PER_PAGE * page < totalItems,
+        hasPreviousPage: page > 1,
+        nextPage: page + 1,
+        previousPage: page - 1,
+        lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE) 
       });
     })
     .catch(err => {
@@ -36,16 +54,23 @@ exports.getProduct = (req, res, next) => {
 };
 
 exports.getIndex = (req, res, next) => {
-  const page = req.query.page;
+  //artificios:
+  //el signo "+" antepuesto a un string lo castea a number
+  //el operador "||" como ya sabemos es de corto circuito y devuelve el segundo operando si el 
+  //primero evalua a false
+  const page = typeof req.query.page == undefined ? 1 : +req.query.page  || 1;
+ 
   let totalItems = 0;
 
   Product.find()
-  .countDocuments(numProducts => {//count solo trae la cantidad de registros NO los registros en sí!!
+  .countDocuments()
+  .then(numProducts => {//count solo trae la cantidad de registros NO los registros en sí!!
     totalItems = numProducts;
-    Product.find()//como esto devuelve un cursor puedo hacer mas operaciones
+    return Product.find()//como esto devuelve un cursor puedo hacer mas operaciones
     //y traerme la data por paginacion
-    .skip((page - 1) * ITEMS_PER_PAGE)//digo cuantos registros me salto de la bd
+    .skip((page - 1) * ITEMS_PER_PAGE)// digo cuantos registros me salto de la bd
     .limit(ITEMS_PER_PAGE)//digo cuantos registros quiero traer de la bd despues de saltarme los anteriores
+    
   })
   .then(products => {
       res.render('shop/index', {
@@ -53,6 +78,7 @@ exports.getIndex = (req, res, next) => {
         pageTitle: 'Shop',
         path: '/',
         totalProducts: totalItems,
+        currentPage: page,
         hasNextPage: ITEMS_PER_PAGE * page < totalItems,
         hasPreviousPage: page > 1,
         nextPage: page + 1,
@@ -60,9 +86,10 @@ exports.getIndex = (req, res, next) => {
         lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE) 
       });
     })
-    .catch(err => {
-      console.log(err);
-    });
+  .catch(err => {
+    console.log(err);
+  });
+  
 };
 
 exports.getCart = (req, res, next) => {

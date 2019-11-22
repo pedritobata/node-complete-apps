@@ -239,10 +239,13 @@ form {
 }
 
 .pagination a:hover,
-.pagination a:active{
+.pagination a:active,
+.pagination a.active{
   background: #00695c;
   color: #fff;
 }
+
+
 
 @media (min-width: 768px) {
   .main-header__nav {
