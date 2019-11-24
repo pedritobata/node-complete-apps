@@ -185,8 +185,9 @@ exports.getProducts = (req, res, next) => {
     .catch(err => console.log(err));
 };
 
-exports.postDeleteProduct = (req, res, next) => {
-  const prodId = req.body.productId;
+//exports.postDeleteProduct = (req, res, next) => {
+  exports.deleteProduct = (req, res, next) => {
+  const prodId = req.params.productId;
   //Product.findByIdAndRemove(prodId)
   //AUTHORIZATION
   //solo voy a borrar los productos que haya creado el current user
@@ -199,14 +200,16 @@ exports.postDeleteProduct = (req, res, next) => {
     .then(() => {
         console.log('DESTROYED PRODUCT');
         fileHelper.deleteFile(product.imageUrl);
-        return res.redirect('/admin/products');
+        //return res.redirect('/admin/products');
+        //cuando usamos ajax Solo necesitamos enviar un response ya no una vista ni nada!!!
+         res.status(200).json({ message: 'Deleting success' });
     })
   })
   .catch(err => {
       console.log(err);
-      const error = new Error(err);
+      /* const error = new Error(err);
       error.httpStatusCode = 500;
-      
-      return next(error);
+      return next(error); */
+      res.status(500).json({ message: 'Deleting failed' });
     });
 };
