@@ -106,6 +106,12 @@ class Feed extends Component {
       editLoading: true
     });
     // Set up data (with image!)
+    const formData = new FormData();//este objeto es propio del browser y sirve para armar body
+    //de una peticion post usando el tipo de encode  multipart, para poder mandar files!!
+    formData.append('title', postData.title);
+    formData.append('content', postData.content);
+    formData.append('image', postData.image);
+
     let url = 'http://localhost:8080/feed/post';
     let method = 'POST';
     if (this.state.editPost) {
@@ -114,13 +120,7 @@ class Feed extends Component {
 
     fetch(url, {
       method: method,
-      body: JSON.stringify({
-        title: postData.title,
-        content: postData.content
-      }),
-      headers: {
-        "Content-Type" : "application/json"
-      }
+      body: formData//usando FormData, ya no es necesario definir las cabeceras multipart
     })
       .then(res => {
         if (res.status !== 200 && res.status !== 201) {
