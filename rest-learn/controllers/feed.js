@@ -1,11 +1,25 @@
 const { validationResult } = require('express-validator/check');
 const Post = require('../models/post');
+const path = require('path');
+const fs = require('fs');
 
 
 exports.getPosts = (req,res,next) => {
+    const page = req.query.page || 1;
+    const perPage = 2;
+    let totalItems = null;
     Post.find()
+    .countDocuments()
+    .then(count => {
+        totalItems = count;
+        return Post.find()
+        .skip((page - 1) * perPage)
+        .limit(perPage)
+       
+    })
     .then(posts => {
-        res.status(200).json({message: 'Fetched posts successfully', posts: posts})
+        console.log(posts);
+        res.status(200).json({message: 'Fetched posts successfully', posts: posts, totalItems: totalItems})
     })
     .catch(err=> {
         if(!err.statusCode){
@@ -76,4 +90,73 @@ exports.getPost = (req,res,next) => {
         }
         next(err);
     });
+};
+
+exports.putPost = (req, res , next) => {
+    const postId = req.params.postId;
+    const title = req.body.title;
+    const content = req.body.content;
+    let imageUrl = req.body.image;
+    if(req.file){//si el cliente envia un file nuevo
+        imageUrl = req.file.path;
+    }
+    if(!imageUrl){
+        const error = new Error('No file picked.');
+        error.statusCode = 422;
+        throw error;
+    }
+    Post.findById(postId)
+    .then(post => {
+        if(!post){
+            const error = new Error('Could not found Post.');
+            error.statusCode = 404;
+            throw error;
+        }
+        //Si el update tambien cambia la imagen , entonces borramos la antigua
+        if(imageUrl !== post.imageUrl){
+            clearImage(post.imageUrl);
+        }
+        post.title = title;
+        post.imageUrl = imageUrl;
+        post.content = content;
+        return post.save();
+    })
+    .then(result => {
+        res.status(200).json({message: 'Post updated!', post: result});
+    })
+    .catch(err=> {
+        if(!err.statusCode){
+            err.statusCode = 500;
+        }
+        next(err);
+    });
+};
+
+exports.deletePost = (req, res, next) => {
+    const postId = req.params.postId;
+    Post.findById(postId)
+    .then(post => {
+        if(!post){
+            const error = new Error('Could not found Post.');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        clearImage(post.imageUrl);
+        return Post.findByIdAndRemove(postId);
+    })
+    .then(result => {
+        console.log('Post Deleted');
+        res.status(200).json({message: 'Post deleted.'});
+    })
+    .catch(err=> {
+        if(!err.statusCode){
+            err.statusCode = 500;
+        }
+    });  
+};
+
+const clearImage = filePath => {
+    filePath = path.join(__dirname,'..',filePath);
+    fs.unlink(filePath, err => console.log(err));
 };

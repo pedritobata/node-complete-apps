@@ -1,5 +1,6 @@
 const express = require('express');
 const feedRouter = require('./routes/feed');
+const authRouter = require('./routes/auth');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const path = require('path');
@@ -85,6 +86,7 @@ btnPost.addEventListener('click', e => {
 
 
 app.use('/feed', feedRouter);
+app.use('/auth', authRouter);
 
 app.use((error, req, res, next) => {
     console.log(error);
