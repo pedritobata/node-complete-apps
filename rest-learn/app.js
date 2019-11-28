@@ -92,8 +92,10 @@ app.use((error, req, res, next) => {
     console.log(error);
     const status = error.statusCode || 500;
     const message = error.message;//message de error es un atributo propio del MW
+    const data = error.data;
     res.status(status).json({
-      message: message
+      message: message,
+      data: data
     });
 });
 

@@ -16,7 +16,8 @@ const postSchema = new Schema({
         required: true
     },
     creator: {
-        type: Object,
+        type: mongoose.Types.ObjectId,
+        ref: 'User',
         required: true
     }
 }, { timestamps: true }); //este 2do argumento que pasamos a Schema es un objeto que puede configurar

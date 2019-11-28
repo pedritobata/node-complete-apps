@@ -2,6 +2,7 @@ const { validationResult } = require('express-validator/check');
 const Post = require('../models/post');
 const path = require('path');
 const fs = require('fs');
+const User = require('../models/user');
 
 
 exports.getPosts = (req,res,next) => {
@@ -18,7 +19,6 @@ exports.getPosts = (req,res,next) => {
        
     })
     .then(posts => {
-        console.log(posts);
         res.status(200).json({message: 'Fetched posts successfully', posts: posts, totalItems: totalItems})
     })
     .catch(err=> {
@@ -50,17 +50,29 @@ exports.createPost = (req,res,next) => {
         title: title, 
         content: content,
         imageUrl: imageUrl,
-        creator: {name: 'fernandillo'},
+        creator: req.userId,
         //los campos createdAt y updatedAt seran creados automaticamente por mongoose
         //gracias a que en el modelo Post configuramos timeStamps : true
     });
 
+    let creator;
     post.save()
     .then(result => {
         console.log('Post added!!');
+        return User.findById(req.userId)
+    })
+    .then(user => {
+        creator = user;
+        user.posts.push(post);//agregamos al array que contiene los posts del user en memoria
+        //aca solicitamos guardar y de guardaran los posts del user preparados antes
+        return user.save()
+       
+    })
+    .then(result => {
         res.status(201).json({
             message: "Post created successfully",
-            post: result
+            post: post,
+            creator: {_id: creator._id, name: creator.name}
         });
     })
     .catch(err=> {
@@ -112,6 +124,12 @@ exports.putPost = (req, res , next) => {
             error.statusCode = 404;
             throw error;
         }
+        //solo permitiremos continuar con el update si el user fue el que creó el post
+        if(req.userId !== post.creator.toString()){
+            const error = new Error('User is not allowed to edit this post.');
+            error.statusCode = 403;
+            throw error;
+        }
         //Si el update tambien cambia la imagen , entonces borramos la antigua
         if(imageUrl !== post.imageUrl){
             clearImage(post.imageUrl);
@@ -141,6 +159,12 @@ exports.deletePost = (req, res, next) => {
             error.statusCode = 404;
             throw error;
         }
+        //solo permitiremos continuar con el delete si el user fue el que creó el post
+        if(req.userId !== post.creator.toString()){
+            const error = new Error('User not allowed to delete this post.');
+            error.statusCode = 403;
+            throw error;
+        }
 
         clearImage(post.imageUrl);
         return Post.findByIdAndRemove(postId);
@@ -153,6 +177,7 @@ exports.deletePost = (req, res, next) => {
         if(!err.statusCode){
             err.statusCode = 500;
         }
+        next(err);
     });  
 };
 
