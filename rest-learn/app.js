@@ -106,7 +106,20 @@ mongoose
 })
   .then(result => {
     console.log('Connected via Mongoose!!!');
-    app.listen(8080);
+    const server = app.listen(8080);
+    //Vamos a usar sockets a traves del paquete Socket.io!!
+    //El protocolo Socket se usa para hacer push principalmente, es decir ,no solo se
+    //hace pull como en http (hacer peticiones para obtener algo), tambien se puede hacer
+    //push , osea , que el server solito manda una info al cliente si que este se la haya pedido!!
+    //obtenemos una instancia de socket POR CADA CLIENTE que se conecte con nuestro server via 
+    //el protocolo socket. Este protocola trabaja por dentro con http normal y NO interfiere con
+    //nuestro trafico http normal porque es un protocolo diferente
+    const io = require('./socket').init(server);
+    //suscribimos una funcion que se ejecutara cuando un cliente se conecte a nuestro server
+    io.on('connect', socket => {
+      //socket representa al cliente que hace la peticion socket
+      console.log('Socket Client connected!!');
+    })
   })
   .catch(err => {
     console.log(err);

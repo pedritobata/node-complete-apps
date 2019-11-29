@@ -3,6 +3,7 @@ const Post = require("../models/post");
 const path = require("path");
 const fs = require("fs");
 const User = require("../models/user");
+const io = require('../socket');
 
 exports.getPosts = async (req, res, next) => {
   const page = req.query.page || 1;
@@ -64,6 +65,14 @@ exports.createPost = async (req, res, next) => {
     user.posts.push(post); //agregamos al array que contiene los posts del user en memoria
     //aca solicitamos guardar y se guardaran los posts del user preparados antes
     await user.save();
+
+    //usamos Sockets para notificar a los clientes que se ha añadido un nuevo post (push)
+    //emit es para notificar a todos incluido el cliente que creó el post, es decir , el que
+    //disparó el evento. broadcast() notifica a todos menos al que disparó el evento
+    //primer argumento: el channel o evento. el nombre es inventado
+    //segundo argumento : la data que quiera mandar, de la forma que quiera!!, en este caso un objeto con
+    //mis atributos inventados que crea necesarios
+    io.getIO().emit('posts',{ action: 'create', post: post });
 
     res.status(201).json({
       message: "Post created successfully",
