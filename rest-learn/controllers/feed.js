@@ -16,6 +16,7 @@ exports.getPosts = async (req, res, next) => {
     const totalItems = await Post.find().countDocuments();
     const posts = await Post.find()
       .populate("creator")
+      .sort({ createdAt: -1 })//ordenamos los posts de forma decreciente en fecha, del mas antiguo al reciente
       .skip((page - 1) * perPage)
       .limit(perPage);
     res.status(200).json({
@@ -122,7 +123,7 @@ exports.putPost = (req, res, next) => {
     error.statusCode = 422;
     throw error;
   }
-  Post.findById(postId)
+  Post.findById(postId).populate('creator')
     .then(post => {
       if (!post) {
         const error = new Error("Could not found Post.");
@@ -130,7 +131,7 @@ exports.putPost = (req, res, next) => {
         throw error;
       }
       //solo permitiremos continuar con el update si el user fue el que creó el post
-      if (req.userId !== post.creator.toString()) {
+      if (req.userId !== post.creator._id.toString()) {
         const error = new Error("User is not allowed to edit this post.");
         error.statusCode = 403;
         throw error;
@@ -145,6 +146,8 @@ exports.putPost = (req, res, next) => {
       return post.save();
     })
     .then(result => {
+      //notificamos a los clientes con el socket
+      io.getIO().emit('posts', {action: 'update', post: result});
       res.status(200).json({ message: "Post updated!", post: result });
     })
     .catch(err => {
@@ -183,6 +186,8 @@ exports.deletePost = (req, res, next) => {
     })
     .then(result => {
       console.log("Post Deleted");
+      //notificamos con el socket
+      io.getIO().emit('posts', { action: 'delete', post: postId });
       res.status(200).json({ message: "Post deleted." });
     })
     .catch(err => {
