@@ -5,6 +5,10 @@ const mongoose = require('mongoose');
 const path = require('path');
 const multer = require('multer');
 
+const graphqlHttp = require('express-graphql');
+const graphqlSchema = require('./graphql/schema');
+const graphqlResolver = require('./graphql/resolvers');
+
 const fileStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'images');
@@ -53,6 +57,12 @@ app.use((req,res,next) => {
     next();
 });
 
+
+//MW para Graphql
+app.use('/graphql',graphqlHttp({
+  schema: graphqlSchema,
+  rootValue: graphqlResolver
+}));
 
 
 app.use((error, req, res, next) => {
