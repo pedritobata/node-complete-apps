@@ -59,9 +59,14 @@ app.use((req,res,next) => {
 
 
 //MW para Graphql
+//GQl usa POST para funcionar por default, pero acá no hemos sido especificos
+//sino que estamos usando "use". Esto es para soportar tambien GET. 
+//con esto podemos, por ejemplo usar la herramienta graphiql que es muy util
+//para probar nuestra API y esta herramienta usa GET
 app.use('/graphql',graphqlHttp({
   schema: graphqlSchema,
-  rootValue: graphqlResolver
+  rootValue: graphqlResolver,
+  graphiql: true
 }));
 
 
