@@ -59,36 +59,59 @@ class App extends Component {
   loginHandler = (event, authData) => {
     event.preventDefault();
     this.setState({ authLoading: true });
-    fetch('http://localhost:8080/auth/login',{
+    const graphqlQuery = {
+      //para las peticiones GET (osea de tipo query en GQl y NO de tipo mutation), se puede
+      //omitir poner la propiedad query del schema definido en el backend. Pero la propiedad
+      //query de este objeto que hace la peticion SI es mandatoria
+      query: `
+        {
+          login(email: "${authData.email}", password: "${authData.password}") {
+            token
+            userId
+          }
+        }
+      `
+    }
+    fetch('http://localhost:8080/graphql',{
       method: 'POST',
       headers: {
         "Content-Type" : 'application/json'
       },
-      body: JSON.stringify({
+      body: JSON.stringify(graphqlQuery/* {
         email: authData.email,
         password: authData.password
-      })
+      } */)
     })
       .then(res => {
-        if (res.status === 422) {
+        /* if (res.status === 422) {
           throw new Error('Validation failed.');
         }
         if (res.status !== 200 && res.status !== 201) {
           console.log('Error!');
           throw new Error('Could not authenticate you!');
-        }
+        } */
         return res.json();
       })
       .then(resData => {
+        if(resData.errors && resData.errors[0].code === 401){
+          throw new Error(
+            "Login failed."
+          );
+        }
+        if(resData.errors){
+          throw new Error(
+            "User login failed."
+          );
+        }
         console.log(resData);
         this.setState({
           isAuth: true,
-          token: resData.token,
+          token: resData.data.login.token,
           authLoading: false,
-          userId: resData.userId
+          userId: resData.data.login.userId
         });
-        localStorage.setItem('token', resData.token);
-        localStorage.setItem('userId', resData.userId);
+        localStorage.setItem('token', resData.data.login.token);
+        localStorage.setItem('userId', resData.data.login.userId);
         const remainingMilliseconds = 60 * 60 * 1000;
         const expiryDate = new Date(
           new Date().getTime() + remainingMilliseconds
@@ -110,20 +133,34 @@ class App extends Component {
     event.preventDefault();
     
     this.setState({ authLoading: true });
-    fetch('http://localhost:8080/auth/signup' , {
-      method: 'PUT',
+    //este objeto es la forma de consultar mediate GraphQl
+    //la propiedad query es mandatoria
+    const graphqlQuery = {
+      query: `
+          mutation {
+            createUser(userInput: {email: "${authData.signupForm.email.value}", 
+            name: "${authData.signupForm.name.value}",
+            password: "${authData.signupForm.password.value}"}){
+              _id
+              email
+            }
+          }
+      `
+    }
+    fetch('http://localhost:8080/graphql' , {
+      method: 'POST',
       headers: {
         "Content-Type" : 'application/json'
       },
-      body: JSON.stringify({
+      body: JSON.stringify(graphqlQuery/* {
         name: authData.signupForm.name.value,
         password: authData.signupForm.password.value,
         email: authData.signupForm.email.value,
-      })
+      } */)
     })
       .then(res => {
         
-        if (res.status === 422) {
+       /*  if (res.status === 422) {
           throw new Error(
             "Validation failed. Make sure the email address isn't used yet!"
           );
@@ -131,11 +168,21 @@ class App extends Component {
         if (res.status !== 200 && res.status !== 201) {
           console.log('Error!');
           throw new Error('Creating a user failed!');
-        }
+        } */
         
         return res.json();
       })
       .then(resData => {
+        if(resData.errors && resData.errors[0].code === 422){
+          throw new Error(
+            "Validation failed. Make sure the email address isn't used yet!"
+          );
+        }
+        if(resData.errors){
+          throw new Error(
+            "User creation failed."
+          );
+        }
         console.log(resData);
         this.setState({ isAuth: false, authLoading: false });
         this.props.history.replace('/');
