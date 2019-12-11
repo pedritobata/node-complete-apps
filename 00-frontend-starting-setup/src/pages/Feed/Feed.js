@@ -95,30 +95,60 @@ class Feed extends Component {
       page--;
       this.setState({ postPage: page });
     }
-    fetch('http://localhost:8080/feed/posts/?page=' + page, {
-      //A pesar que esta peticion es GET, es mejor mandar el token
+    let graphqlQuery = {
+      query: `
+        {
+          posts {
+            posts{
+              title
+              _id
+              content
+              
+              createdAt
+            }
+            totalPosts
+          }
+        }
+      `
+    }
+
+     //A pesar que esta peticion es GET, es mejor mandar el token
       //por header. para esto hay un header especial
       //Bearer es un prefijo que se agrega por convencion. es opcional pero
       //en nuestro backend lo estamos esperando
+    // fetch('http://localhost:8080/feed/posts/?page=' + page, {
+
+    //esta peticion es para GQl
+    fetch('http://localhost:8080/graphql', {
+      method: "POST" ,
       headers: {
-        Authorization: 'Bearer ' + this.props.token
-      }
+        Authorization: 'Bearer ' + this.props.token,
+        "Content-Type" : "application/json"
+      },
+      body: JSON.stringify(graphqlQuery)
     })
       .then(res => {
-        if (res.status !== 200) {
+        /* if (res.status !== 200) {
           throw new Error('Failed to fetch posts.');
-        }
+        } */
+        
         return res.json();
       })
       .then(resData => {
+        console.log('Fetched posts', resData);
+        if(resData.errors){
+          throw new Error(
+            "Posts not found."
+          );
+        }
         this.setState({
-          posts: resData.posts.map(post => {
+          posts: resData.data.posts.posts.map(post => {
             return {
               ...post,
               imagePath: post.imageUrl
             }
           }),
-          totalPosts: resData.totalItems,
+          totalPosts: resData.data.posts.totalItems,
           postsLoading: false
         });
       })
@@ -235,11 +265,21 @@ class Feed extends Component {
           _id: resData.data.createPost._id,
           title: resData.data.createPost.title,
           content: resData.data.createPost.content,
-          creator: resData.data.createPostt.creator.name,
+          creator: resData.data.createPost.creator ? resData.data.createPost.creator.name : null,
           createdAt: resData.data.createPost.createdAt
         };
         this.setState(prevState => {
+          const updatedPosts = [...prevState.posts];
+          if(prevState.editPost){
+            const postIndex = prevState.posts.findIndex(p=>{
+              return p._id === prevState.editPost._id;
+            });
+            updatedPosts[postIndex] = post;
+          }else{
+            updatedPosts.unshift(post);
+          }
           return {
+            posts:updatedPosts,
             isEditing: false,
             editPost: null,
             editLoading: false
@@ -349,7 +389,7 @@ class Feed extends Component {
                 <Post
                   key={post._id}
                   id={post._id}
-                  author={post.creator.name}
+                  author={post.creator !== undefined ? post.creator.name : null}
                   date={new Date(post.createdAt).toLocaleDateString('en-US')}
                   title={post.title}
                   image={post.imageUrl}
