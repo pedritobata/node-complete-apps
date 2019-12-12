@@ -3,6 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const path = require('path');
+const fs = require('fs');
 const multer = require('multer');
 
 const graphqlHttp = require('express-graphql');
@@ -73,6 +74,24 @@ app.use((req,res,next) => {
 //este MW es para validar la autorization para las petciones GQl
 app.use(auth);
 
+//MW para subir imagenes, el cliente nos envía el path de la imagen antigua cuando es un update
+app.put('/post-image',(req,res,next) => {
+  if(!req.isAuth){
+    throw new Error("Not authenticated.");
+  }
+  if(!req.file){//si multer no aceptó el file, no lo agrega al request
+    //si el cliente no envió imagen nueva, el filePath que sí se envía mas abajo cuando sí hay imagen nueva
+    // se enviará como undefined (en forma de string "undefined")
+    return res.status(200).json({message:"No file provided."});
+  }
+  if(req.body.oldPath){//si es un update con imagen nueva borramos la anterior
+    clearImage(req.body.oldPath);
+  }
+  //enviamos el mensaje y el path proporcionado po multer
+  
+  return res.status(201).json({message: "File uploaded.", filePath: req.file.path})
+});
+
 //MW para Graphql
 //GQl usa POST para funcionar por default, pero acá no hemos sido especificos
 //sino que estamos usando "use". Esto es para soportar tambien GET. 
@@ -89,6 +108,7 @@ app.use('/graphql',graphqlHttp({
   //la funcion que antes se usaba era formatError() pero ya está deprecada!!
   customFormatErrorFn(err){
     if(!err.originalError){
+      // err.mensajon = 'jeje';
       return err;
     }
     const data = err.originalError.data;
@@ -130,3 +150,7 @@ mongoose
   });
 
 
+  const clearImage = filePath => {
+    filePath = path.join(__dirname, "..", filePath);
+    fs.unlink(filePath, err => console.log(err));
+  };

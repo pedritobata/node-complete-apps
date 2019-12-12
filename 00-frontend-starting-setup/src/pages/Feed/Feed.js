@@ -98,13 +98,16 @@ class Feed extends Component {
     let graphqlQuery = {
       query: `
         {
-          posts {
+          posts(page: ${page}) {
             posts{
               title
               _id
               content
-              
+              imageUrl
               createdAt
+              creator{
+                name
+              }
             }
             totalPosts
           }
@@ -145,10 +148,10 @@ class Feed extends Component {
           posts: resData.data.posts.posts.map(post => {
             return {
               ...post,
-              imagePath: post.imageUrl
+              imageUrl: post.imageUrl
             }
           }),
-          totalPosts: resData.data.posts.totalItems,
+          totalPosts: resData.data.posts.totalPosts,
           postsLoading: false
         });
       })
@@ -186,7 +189,7 @@ class Feed extends Component {
   startEditPostHandler = postId => {
     this.setState(prevState => {
       const loadedPost = { ...prevState.posts.find(p => p._id === postId) };
-
+      console.log('startEditPostHandler', loadedPost);
       return {
         isEditing: true,
         editPost: loadedPost
@@ -205,9 +208,64 @@ class Feed extends Component {
     // Set up data (with image!)
     const formData = new FormData();//este objeto es propio del browser y sirve para armar body
     //de una peticion post usando el tipo de encode  multipart, para poder mandar files!!
-    formData.append('title', postData.title);
-    formData.append('content', postData.content);
+    // formData.append('title', postData.title);
+    // formData.append('content', postData.content);
     formData.append('image', postData.image);
+    if(this.state.editPost){
+      formData.append('oldPath', this.state.editPost.imagePath);
+    }
+    fetch("http://localhost:8080/post-image", {
+      method: "PUT",
+      headers: {
+        Authorization: 'Bearer ' + this.props.token
+      },
+      body: formData
+    })
+    .then(res => res.json())
+    .then(fileResData => {
+    //el servicio /post-image devolverá undefined en el filePath si el cliente no envió ningun file pa actualizar
+    //y ese valor es el que se envía al siguiente servicio de update. el backend validará eso
+    //si es undefined, simplemente asume que la imagen no cambia!
+    //cuando la operacion es crear post, entonces siempre se manda una imagen, ese campo es requerido en
+    //el frontend
+      const imageUrl = fileResData.filePath;
+
+      let graphqlQuery = {
+        query: `
+          mutation {
+            createPost(postInput: {title: "${postData.title}", 
+            content: "${postData.content}", imageUrl: "${imageUrl}"}){
+              _id
+              title
+              content
+              creator {
+                name
+              }
+              createdAt
+            }
+          }
+        `
+      }
+
+      if(this.state.editPost){
+        graphqlQuery = {
+          query: `
+            mutation {
+              updatePost(id: "${this.state.editPost._id}" ,postInput: {title: "${postData.title}", 
+              content: "${postData.content}", imageUrl: "${imageUrl}"}){
+                _id
+                title
+                content
+                creator {
+                  name
+                }
+                createdAt
+              }
+            }
+          `
+        }
+      }
+  
 
     // let url = 'http://localhost:8080/feed/post';
     // let method = 'POST';
@@ -216,33 +274,19 @@ class Feed extends Component {
     //   method = 'PUT';
     //}
 
-    let graphqlQuery = {
-      query: `
-        mutation {
-          createPost(postInput: {title: "${postData.title}", content: "${postData.content}", imageUrl: "some path"}){
-            _id
-            title
-            content
-            creator {
-              name
-            }
-            createdAt
-          }
+      return fetch("http://localhost:8080/graphql", {
+        //method: method,
+        //body: formData,//usando FormData, ya no es necesario definir las cabeceras multipart
+        method: "POST",
+        body: JSON.stringify(graphqlQuery),
+        headers : {
+          Authorization: 'Bearer ' + this.props.token,
+          "Content-Type" : "application/json"
         }
-      `
-    }
-
-    fetch("http://localhost:8080/graphql", {
-      //method: method,
-      //body: formData,//usando FormData, ya no es necesario definir las cabeceras multipart
-      method: "POST",
-      body: JSON.stringify(graphqlQuery),
-      headers : {
-        Authorization: 'Bearer ' + this.props.token,
-        "Content-Type" : "application/json"
-      }
-      
+        
+      })
     })
+
       .then(res => {
        /*  if (res.status !== 200 && res.status !== 201) {
           throw new Error('Creating or editing a post failed!');
@@ -261,12 +305,16 @@ class Feed extends Component {
           );
         }
         console.log(resData);
+        let resDataField = "createPost";
+        if(this.state.editPost){
+          resDataField = "updatePost";
+        }
         const post = {
-          _id: resData.data.createPost._id,
-          title: resData.data.createPost.title,
-          content: resData.data.createPost.content,
-          creator: resData.data.createPost.creator ? resData.data.createPost.creator.name : null,
-          createdAt: resData.data.createPost.createdAt
+          _id: resData.data[resDataField]._id,
+          title: resData.data[resDataField].title,
+          content: resData.data[resDataField].content,
+          creator: resData.data[resDataField].creator ? resData.data[resDataField].creator.name : null,
+          createdAt: resData.data[resDataField].createdAt
         };
         this.setState(prevState => {
           const updatedPosts = [...prevState.posts];
@@ -276,6 +324,7 @@ class Feed extends Component {
             });
             updatedPosts[postIndex] = post;
           }else{
+            updatedPosts.pop();
             updatedPosts.unshift(post);
           }
           return {
