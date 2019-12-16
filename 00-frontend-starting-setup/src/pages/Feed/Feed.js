@@ -23,18 +23,38 @@ class Feed extends Component {
   };
 
   componentDidMount() {
-    fetch('http://localhost:8080/auth/status', {
-      headers: {Authorization: 'Bearer ' + this.props.token}
+    const graphqlQuery = {
+      query: `
+        {
+          user {
+            status
+          }
+        }
+      `
+    }
+    // fetch('http://localhost:8080/auth/status', {
+    fetch('http://localhost:8080/graphql', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + this.props.token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(graphqlQuery)
     })
       .then(res => {
-        if (res.status !== 200) {
+       /*  if (res.status !== 200) {
           throw new Error('Failed to fetch user status.');
         }
-        
+         */
         return res.json();
       })
       .then(resData => {
-        this.setState({ status: resData.status });
+        if(resData.errors){
+          throw new Error(
+            "Status not found."
+          );
+        }
+        this.setState({ status: resData.data.user.status });
       })
       .catch(this.catchError);
 
@@ -95,10 +115,16 @@ class Feed extends Component {
       page--;
       this.setState({ postPage: page });
     }
+
+    //usaremos querys nombrados. esto es un feature de GQl
+    //notar que tenemos que escribir el tipo de operacion obligatoriamente, asi sea tipo query
+    //ponemos el nombre del query(arbitrario) y entre parentesis los argumentos que necesita el query con su data type
+    //esos argumentos ya se pueden invocar en el cuerpo del query.
+    //Ademas hay que agregar un segundo argumento a graphqlQuery, y se debe llamar exactamente "variables"
     let graphqlQuery = {
       query: `
-        {
-          posts(page: ${page}) {
+        query FetchPosts($currPage: Int!){
+          posts(page: $currPage) {
             posts{
               title
               _id
@@ -112,7 +138,12 @@ class Feed extends Component {
             totalPosts
           }
         }
-      `
+      `,
+      variables: {
+        //especificamos el mapeo de las variables que usa el query
+        //sería:  nombre de variable sin $ : valor que enviaremos
+        currPage: page
+      }
     }
 
      //A pesar que esta peticion es GET, es mejor mandar el token
@@ -160,23 +191,40 @@ class Feed extends Component {
 
   statusUpdateHandler = event => {
     event.preventDefault();
-    fetch('http://localhost:8080/auth/status' , {
-      method: "PATCH",
-      body: JSON.stringify({
+    const graphqlQuery = {
+      query: `
+        mutation {
+          updateStatus(status: "${this.state.status}") {
+            status
+          }
+        }
+      `
+    }
+    // fetch('http://localhost:8080/auth/status' , {
+      fetch('http://localhost:8080/graphql' , {
+      // method: "PATCH",
+      method: "POST",
+     /*  body: JSON.stringify({
         status: this.state.status
-      }),
+      }), */
+      body: JSON.stringify(graphqlQuery),
       headers: {
         Authorization: 'Bearer ' + this.props.token,
         "Content-Type" : "application/json"
       }
     })
       .then(res => {
-        if (res.status !== 200 && res.status !== 201) {
+        /* if (res.status !== 200 && res.status !== 201) {
           throw new Error("Can't update status!");
-        }
+        } */
         return res.json();
       })
       .then(resData => {
+        if(resData.errors){
+          throw new Error(
+            "Status updating failed."
+          );
+        }
         console.log(resData);
       })
       .catch(this.catchError);
@@ -189,7 +237,7 @@ class Feed extends Component {
   startEditPostHandler = postId => {
     this.setState(prevState => {
       const loadedPost = { ...prevState.posts.find(p => p._id === postId) };
-      console.log('startEditPostHandler', loadedPost);
+      //console.log('startEditPostHandler', loadedPost);
       return {
         isEditing: true,
         editPost: loadedPost
@@ -212,7 +260,8 @@ class Feed extends Component {
     // formData.append('content', postData.content);
     formData.append('image', postData.image);
     if(this.state.editPost){
-      formData.append('oldPath', this.state.editPost.imagePath);
+      formData.append('oldPath', this.state.editPost.imageUrl);
+      console.log(this.state.editPost);
     }
     fetch("http://localhost:8080/post-image", {
       method: "PUT",
@@ -230,11 +279,15 @@ class Feed extends Component {
     //el frontend
       const imageUrl = fileResData.filePath;
 
+      //usaremos named querys
+      //notar que solo usamos las variables con su dollar sign, ya no se necesitan las comillas para armar el query
+      //OJO que si los campos del query son requeridos (signo "!") en el schema de mi backend, entonces
+      //tambien deben serlo en el named query, sino tira error!!
       let graphqlQuery = {
         query: `
-          mutation {
-            createPost(postInput: {title: "${postData.title}", 
-            content: "${postData.content}", imageUrl: "${imageUrl}"}){
+          mutation CreateUserPost ($title: String!, $content: String!, $imageUrl: String!){
+            createPost(postInput: {title: $title, 
+            content: $content, imageUrl: $imageUrl}){
               _id
               title
               content
@@ -244,7 +297,12 @@ class Feed extends Component {
               createdAt
             }
           }
-        `
+        `,
+        variables: {
+          title: postData.title,
+          content: postData.content,
+          imageUrl: imageUrl
+        }
       }
 
       if(this.state.editPost){
@@ -256,6 +314,7 @@ class Feed extends Component {
                 _id
                 title
                 content
+                imageUrl
                 creator {
                   name
                 }
@@ -313,6 +372,7 @@ class Feed extends Component {
           _id: resData.data[resDataField]._id,
           title: resData.data[resDataField].title,
           content: resData.data[resDataField].content,
+          imageUrl: resData.data[resDataField].imageUrl,
           creator: resData.data[resDataField].creator ? resData.data[resDataField].creator.name : null,
           createdAt: resData.data[resDataField].createdAt
         };
@@ -352,20 +412,36 @@ class Feed extends Component {
 
   deletePostHandler = postId => {
     this.setState({ postsLoading: true });
-    fetch('http://localhost:8080/feed/post/' + postId , {
-      method: "DELETE",
+
+    const graphqlQuery = {
+      query: `
+        mutation {
+          deletePost(id: "${postId}")
+        }
+      `
+    }
+
+    fetch('http://localhost:8080/graphql', {
+      method: "POST",
       headers : {
-        Authorization: 'Bearer ' + this.props.token
-      }
+        Authorization: 'Bearer ' + this.props.token,
+        "Content-Type" : "application/json"
+      },
+      body: JSON.stringify(graphqlQuery)
     })
       .then(res => {
-        if (res.status !== 200 && res.status !== 201) {
+        /* if (res.status !== 200 && res.status !== 201) {
           throw new Error('Deleting a post failed!');
-        }
+        } */
         return res.json();
       })
       .then(resData => {
         console.log(resData);
+        if(resData.errors){
+          throw new Error(
+            "Post deletion failed."
+          );
+        }
         this.loadPosts();//como el backend ya notifica inmediatamente el delete
         //entonces bsatará con recagrgar la pagina cargando los posts y ahi ya se habra eliminado el post!!
 

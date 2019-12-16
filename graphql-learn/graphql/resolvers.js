@@ -3,6 +3,8 @@ const Post = require('../models/post');
 const bcrypt = require('bcryptjs');
 const validator = require('validator');
 const jwt = require('jsonwebtoken');
+const path = require('path');
+const fs = require('fs');
 
 //los resolvers se devuelven dentro de un objeto
 module.exports = {
@@ -141,7 +143,7 @@ module.exports = {
             .skip((page -1) * perPage)
             .limit(perPage)
             .populate('creator');
-            //console.log('posts', posts[0]._doc);
+            console.log('posts', posts);
         return {
             totalPosts: totalPosts,
             posts: posts.map(p=> {
@@ -221,6 +223,74 @@ module.exports = {
             createdAt: updatedPost.createdAt.toISOString(),
             updatedAt: updatedPost.updatedAt.toISOString()
         }
+    },
+
+    deletePost: async function({id}, req){
+        if(!req.isAuth){
+            const error = new Error('User not authenticated.');
+            error.code = 401;
+            throw error;
+        }
+        //no hacemos el populate con creator porque solo necesitamos el id
+        const post = await Post.findById(id);
+        if(!post){
+            const error = new Error("Post not found.");
+            error.code = 404;
+            throw error;
+        } 
+        //validamos que solo el creador del post lo pueda eliminar
+        if(post.creator.toString() !== req.userId.toString()){
+            const error = new Error("Not authorized to delete this Post.");
+            error.code = 403;
+            throw error;
+        }
+        clearImage(post.imageUrl);
+        await Post.findByIdAndRemove(id);
+        const user = await User.findById(req.userId);
+        //eliminamos el post de la lista de posts que tiene el user en su doc
+        //usando el metodo magico pull
+        //ojo que esto se hace en memoria por eso que no usamos await
+        user.posts.pull(id);
+        await user.save();//actualizamos la BD
+        return true;
+    },
+
+    user: async function(args, req){
+        if(!req.isAuth){
+            const error = new Error('User not authenticated.');
+            error.code = 401;
+            throw error;
+        }
+        const user = await User.findById(req.userId);
+        if(!user){
+            const error = new Error("User not found.");
+            error.code = 404;
+            throw error;
+        }
+        return {
+            ...user._doc, _id: user._id.toString()
+        }
+           
+    },
+
+    updateStatus: async function({status}, req){
+        if(!req.isAuth){
+            const error = new Error('User not authenticated.');
+            error.code = 401;
+            throw error;
+        }
+        const user = await User.findById(req.userId);
+        if(!user){
+            const error = new Error("User not found.");
+            error.code = 404;
+            throw error;
+        }
+        user.status = status;
+        await user.save();
+        return {
+            ...user._doc, _id: user._id.toString()
+        }
+
     }
 
     //********  OJO   ***********
@@ -229,3 +299,10 @@ module.exports = {
         //esa aplicacion que se abre en el navegador tiene varias herramientas muy utiles!!
 
 }
+
+
+const clearImage = filePath => {
+    filePath = path.join(__dirname, ".", filePath);
+    console.log("Borrar:", filePath);
+    fs.unlink(filePath, err => console.log(err));
+  };

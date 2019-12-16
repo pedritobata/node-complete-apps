@@ -151,6 +151,7 @@ mongoose
 
 
   const clearImage = filePath => {
-    filePath = path.join(__dirname, "..", filePath);
+    filePath = path.join(__dirname, ".", filePath);
+    console.log("Borrar:", filePath);
     fs.unlink(filePath, err => console.log(err));
   };
