@@ -38,11 +38,13 @@ exports.signup = (req,res,next) => {
 };
 
 exports.login = (req,res,next) => {
+   
     const email = req.body.email;
     const password = req.body.password;
     let loadedUser;
-    User.findOne({email:email})
+    return User.findOne({email:email})
     .then(user => {
+        console.log("buscando al user con findOne", user);
         if(!user){
             const error = new Error('User not found.');
             error.statusCode = 401;
@@ -70,14 +72,18 @@ exports.login = (req,res,next) => {
         //le mandamos al cliente el token y el id del user
         //el id del user lo necesita para varias funcionalidades, ya que una vez que el 
         //user lo ingresa, si no lo guarda el frontend no tendrá de dónde obtenerlo luego
-        res.status(200).json({token: token, userId: loadedUser._id.toString()});
+        return res.status(200).json({token: token, userId: loadedUser._id.toString()});
     })
     .catch(err=> {
         if(!err.statusCode){
             err.statusCode = 500;//atributo nuestro para el status
         }
+       
         next(err);
+       
     }); 
+
+    //return "hola soy un error"; 
 };
 
 exports.getUserStatus = (req,res,next) => {
