@@ -5,10 +5,21 @@
 */
 
 const http = require('http');
+const https = require('https');
+const fs = require('fs');
 const url = require('url');
 const StringDecoder = require('string_decoder').StringDecoder;
+const config = require('./config');
 
-const server = http.createServer(function(req,res){
+const httpServer = http.createServer(unifiedServer);
+
+const httpsServerOptions = {
+    'key': fs.readFileSync('./https/key.pem'),
+    'cert': fs.readFileSync('./https/cert.pem'),
+}
+const httpsServer = https.createServer(httpsServerOptions, unifiedServer);
+
+function unifiedServer(req,res){
     const parsedUrl = url.parse(req.url, true);
     const trimmedUrl = parsedUrl.pathname.replace(/^\/+|\/+$/g, '');
 
@@ -29,17 +40,18 @@ const server = http.createServer(function(req,res){
             console.log('status=> ', statusCode);
             const status = typeof statusCode === 'number' ? statusCode : 200;
             const payloadString = typeof payload === 'object' ? JSON.stringify(payload) : '{}'; 
+            res.setHeader('Content-Type', 'application/json');
             res.writeHead(status)
             res.end(payloadString);
         })
     });
 
-    console.log('parsedUrl:', parsedUrl);
+   /*  console.log('parsedUrl:', parsedUrl);
     console.log('trimmedUrl:', trimmedUrl);
     console.log('method:', method);
     console.log('query:', queryObj);
-    console.log('headers:', headers);
-});
+    console.log('headers:', headers); */
+}
 
 function processRequest(req, res, onEnd) {
     let buffer = '';
@@ -57,8 +69,8 @@ function processRequest(req, res, onEnd) {
 
 const handlers = {};
 
-handlers.sample = function(data, callback) {
-    callback(406, {name: 'perico'});
+handlers.ping = function(data, callback) {
+    callback(200);
 }
 
 handlers.notFound = function(data, callback) {
@@ -66,10 +78,14 @@ handlers.notFound = function(data, callback) {
 }
 
 const router = {
-    "sample": handlers.sample
+    "ping": handlers.ping
 }
 
 
-server.listen(3000, function(){
-    console.log('Server running on port 3000');
+httpServer.listen(config.httpPort, function(){
+    console.log(`Server running on port ${config.httpPort} in ${config.envName} mode`);
+});
+
+httpsServer.listen(config.httpsPort, function(){
+    console.log(`Server running on port ${config.httpsPort} in ${config.envName} mode`);
 });
