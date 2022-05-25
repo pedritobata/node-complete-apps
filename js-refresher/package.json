@@ -1,0 +1,15 @@
+{
+  "name": "js-refresher",
+  "version": "1.0.0",
+  "description": "",
+  "main": "linter-headings.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "jest": "^28.1.0"
+  }
+}
